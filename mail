@@ -1,1 +1,17 @@
 
+Please find API details for SUBMIT and APPROVE-
+
+Action- SUBMIT
+Method- POST
+API-  rest/api/{lob}/setup/agreement/{event} 
+EX - http://localhost:8080/rest/api/XM/setup/agreement/SUBMIT 
+Request Body-  Composite Profile for XM
+
+
+Action- APPROVE
+Method- POST
+API-  rest/api/{lob}/ setup/AGREEMENT_SETUP/{event}/ids/{profileId}
+EX- http://localhost:8080/rest/api/XM/setup/AGREEMENT_SETUP/APPROVE/ids/10000000010006
+
+Both the api already present but these needs to be enable for XM lob.
+abcd
