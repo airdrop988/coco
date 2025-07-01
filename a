@@ -1,1 +1,792 @@
-a
+{
+    "compositeProfile": {
+        "legalAgreement": {
+            "profileId": "10000000010003",
+            "lineOfBusiness": "XM",
+            "profileType": "CPMNA",
+            "profileStatus": "LIVE",
+            "createdBy": "CAPTIS",
+            "createdDtm": 1719933080.228000000,
+            "updatedDtm": 1741155636.113000000,
+            "updatedBy": "N776346",
+            "version": 1,
+            "attributes": {
+                "parties": null,
+                "documentDate": null,
+                "goLiveDate": null,
+                "governingLaw": null,
+                "region": null,
+                "comments": null,
+                "thresholdMonitoring": null,
+                "bilateralFlag": null,
+                "unilateralCPFavour": null,
+                "regulatoryAgreement": null,
+                "segregationModel": null,
+                "splitType": null,
+                "pledgorSegregationModel": null,
+                "securedPartySegregationModel": null,
+                "agreementType": null,
+                "agreementReportingType": null,
+                "midBidPriceIndicator": null,
+                "reportingCurrency": null,
+                "parameterCurrency": null,
+                "roundingAmount": null,
+                "legalEntityMTA": null,
+                "counterPartyMTA": null,
+                "legalEntityThreshold": null,
+                "counterPartyThreshold": null,
+                "callNotificationTime": null,
+                "callNotificationLocation": null,
+                "csaNotificationTimezone": null,
+                "transferTime": null,
+                "csaTransferTime": null,
+                "requirementHairCut": null,
+                "businessDayLocations": null,
+                "cnsdrRegHolidaySettlement": null,
+                "callFrequency": null,
+                "callFrequencies": null,
+                "callFrequencyComments": null,
+                "eligibleProducts": null,
+                "autoAgreeFlag": null,
+                "acadiaSoftEnabled": null,
+                "stpRba": null,
+                "stpAcadiaMovesFlag": null,
+                "disputeToleranceType": null,
+                "disputeToleranceAmount": null,
+                "agreementName": null,
+                "stpCancellationFlag": null,
+                "enableCashCopySwift": null,
+                "destinationBICAddress": null,
+                "ampID": null,
+                "agreementNameOverride": null,
+                "agreementNameOverrideFlag": null,
+                "password": null,
+                "confirmPassword": null,
+                "isPasswordRequired": null,
+                "autoReleaseFlag": null,
+                "autoReleaseTime": null,
+                "marginCallCobDate": null,
+                "autoRecallFromClient": null,
+                "imosPublisherSuppression": null,
+                "clearedMarginOversightEnabled": null,
+                "bufferSetup": null,
+                "marginValidationSetup": null,
+                "interestSchedule": null,
+                "interestAccrualEndDate": null,
+                "interestStmtApproval": null,
+                "allowInterestMoves": null,
+                "autoPayInterest": null,
+                "weekly": null,
+                "autoReturnOrDeliverToClient": null,
+                "updateDateTime": null,
+                "considerIncomeEvent": null,
+                "considerCoacs": null,
+                "effectivePeriod": null,
+                "rehypothecateFlag": null,
+                "rehypothecationSecurities": null,
+                "rehypothecationCash": null,
+                "rehypothecationCashCurrencies": null,
+                "restrictedRehypothecation": null,
+                "restrictedRehypoSecurities": null,
+                "restrictedRehypoCash": null,
+                "restrictedRehypoCashCurrencies": null,
+                "positionOrderSource": null,
+                "clearedAutoFundAccountBySplitType": null,
+                "ampMarginFlag": null,
+                "calculationType": null,
+                "imDisputeThreshold": null,
+                "cpPostingBasis": null,
+                "customerType": null,
+                "customerTypeId": null,
+                "disputeThresholdAmount": null,
+                "disputeThresholdPercentage": null,
+                "holidayRegion": null,
+                "hybridOffset": null,
+                "iaAmpIndicator": null,
+                "marginFlowType": null,
+                "imSegregationModel": null,
+                "interEntityImSplitType": null,
+                "moveSplitFlag": null,
+                "nccaFlag": null,
+                "jpmMarginFlg": null,
+                "leImDisputeThreshold": null,
+                "lePostingBasis": null,
+                "receiveReviewRequiredFlag": null,
+                "payReviewRequiredFlag": null,
+                "leModelType": null,
+                "moveDisableFlag": null,
+                "prmsMarginClientFlag": null,
+                "variableReportingCurrency": null,
+                "imCpRehypoFlag": null,
+                "imLeRehypoFlag": null,
+                "valuationAgentId": null,
+                "valuationAgentFlag": null,
+                "soleCalcAgent": null,
+                "settlementCurrency": null,
+                "vmCpRehypoFlag": null,
+                "vmLeRehypoFlag": null,
+                "cimActionRequiredFlag": null,
+                "cimApprovalRequiredFlag": null,
+                "grossPaymentNettingFlag": null,
+                "rimSegregationModel": null,
+                "sourceSystem": null,
+                "linkedQueryIds": null,
+                "groupId": null,
+                "isMtuIndFlag": null,
+                "isTripartyFlag": null,
+                "agreementAlias": null,
+                "relatedPbAgreementNumber": null,
+                "csaType": null,
+                "imReportingCurrency": null,
+                "specialCustomerType": null,
+                "houseMarginCalculationModels": null,
+                "settlementNetting": null,
+                "includeLegacyTrades": null,
+                "crossMarginingApplicable": null,
+                "includeOutOfScopeSensitivities": null,
+                "includeFXSpots": null,
+                "excludeJumpToDefaultAddOn": null,
+                "simmPortfolioAddOn": null,
+                "imosAgreementCaid": null,
+                "imosOwnershipCaid": null,
+                "cmOwnershipCaid": null,
+                "masterAgreementVersion": null,
+                "independentAdjustments": null,
+                "independentAmounts": null,
+                "legalEntityIndependentAmounts": null,
+                "counterPartyIndependentAmounts": null,
+                "roundingAmountLE": null,
+                "returnRoundingAmountLE": null,
+                "returnRoundingAmountCP": null,
+                "roundingAmountCP": null,
+                "imTermFlag": null,
+                "csCsaCovered": null,
+                "roundingAmountCurrencyCP": null,
+                "returnRoundingAmountCurrencyCP": null,
+                "roundingAmountCurrencyLE": null,
+                "returnRoundingAmountCurrencyLE": null,
+                "independentAmountReturnable": null,
+                "calculationCurrency": null,
+                "imFloorAmount": null,
+                "mtmCalcType": null,
+                "excludeFxNopSpotFlag": null,
+                "grossCPMinimumTransferAmount": null,
+                "grossLEMinimumTransferAmount": null,
+                "iaMultiplier": null,
+                "marginProducts": null,
+                "primaryUnifiedDocId": null,
+                "primaryDocTitle": null,
+                "colValDisputeResolution": null,
+                "firstParty": null,
+                "jpmRole": null,
+                "multiApplicableUnderAgreement": null,
+                "priceSource": null,
+                "secondParty": null,
+                "partyAssignedJPLE": null,
+                "ctpyCltrl": null,
+                "mktValDetermination": null,
+                "mktValPriceDisupute": null,
+                "transferabilityCP": null,
+                "transferabilityJPM": null,
+                "mgnPaymentLateNotice": null,
+                "mgnPaymentTimelyNotice": null,
+                "jpmCollateral": null,
+                "amendmentsEffectiveDate": null,
+                "allBranchesCounterPartyValue": null,
+                "standardPartyInNovationNet": null,
+                "standardPartyInSettlementNet": null,
+                "standardPartyCltOid": null,
+                "collateralStandardParty": null,
+                "standardPartyJpmGuranteeExist": null,
+                "standardPartyInCloseoutNet": null,
+                "secondaryUnifiedDocId": null,
+                "secondaryDocumentTitle": null,
+                "primaryDocumentCreationDate": null,
+                "secondaryDocumentCreationDate": null,
+                "primaryDocumentEffectiveDate": null,
+                "secondaryDocumentEffectiveDate": null,
+                "primaryDocumentExpirationDate": null,
+                "secondaryDocumentExpirationDate": null,
+                "primaryDocumentModificationDate": null,
+                "secondaryDocumentModificationDate": null,
+                "primaryAgreementCreator": null,
+                "secondaryAgreementCreator": null,
+                "primaryDocumentCreatorName": null,
+                "secondaryDocumentCreatorName": null,
+                "primaryTaxonomyVersionId": null,
+                "secondaryTaxonomyVersionId": null,
+                "primaryAgreementGoverningLawCountry": null,
+                "secondaryAgreementGoverningLawCountry": null,
+                "primaryAgreementGoverningLawState": null,
+                "secondaryAgreementGoverningLawState": null,
+                "investorAdvisorUcn": null,
+                "csUcnIa": null,
+                "governingLawCountryDescription": null,
+                "governingLawRegionDescription": null,
+                "contractType": null,
+                "preferred": null,
+                "additionalPrimaryGoverningLaw": null,
+                "inIsda10A": null,
+                "crossDefaultPaymentMaxVal": null,
+                "masterAgreementFinancialCovenantType": null,
+                "electiveTerminationRightsExists": null,
+                "jpCreditEventUponMergerApplies": null,
+                "cpCreditEventUponMergerApplies": null,
+                "isApplicableSPNBranch": null,
+                "calculationAgent": null,
+                "isApplicableOFFBranch": null,
+                "isJpmCollateralMaxValSet": null,
+                "jpmGuaranteeExists": null,
+                "jpmCloseOutApplicable": null,
+                "cpCloseOutApplicable": null,
+                "jpOfficialSettlementType": null,
+                "cpOfficialSettlementType": null,
+                "guarantyAgreementFlg": null,
+                "jpNovationType": null,
+                "cpNovationType": null,
+                "inCltrlCounterParty": null,
+                "leAutomaticEarlyTerminationApplies": null,
+                "cpAutomaticEarlyTerminationApplies": null,
+                "terminationCurrency": null,
+                "governingLawCountryCode": null,
+                "thresholdCurrencyCode": null,
+                "governingLawId": null,
+                "specificPreferredCallTimeId": null,
+                "specificPreferredCallTime": null,
+                "executionCutoffTime": null,
+                "executionCutoffTimeZone": null,
+                "paymentNettingFlag": null,
+                "csaTerminationCurrency": null,
+                "negativeInterestFlag": null,
+                "opicsZeroRateFloor": null,
+                "interestRate": null,
+                "taxInterestRate": null,
+                "returnRoundingAmount": null,
+                "timeOfNotCalling": null,
+                "taxTransferType": null,
+                "unregulatedTradeEffectiveDate": null,
+                "gracePeriodValue": null,
+                "transferTimeValue": null,
+                "terminationCurrencyForTwoAffectedPartiesLE": null,
+                "terminationCurrencyForTwoAffectedPartiesCP": null,
+                "amendColtrExistFlag": null,
+                "amendmentDate": null,
+                "substitution": null,
+                "substitutionRightsId": null,
+                "collateralAgreementId": null,
+                "valuationDateTimeFrequency": null,
+                "valuationDateTimeFrequencyId": null,
+                "locId": null,
+                "rehypothecationDesc": null,
+                "independantAdjustmentType": null,
+                "independantAdjustmentTypeId": null,
+                "initialVariationMargin": null,
+                "collateralAmountsThreshold": null,
+                "markToMarkAdjustmentIndependantAmount": null,
+                "agreementMarginRegimeProducts": null,
+                "legalAgreementCollateralTriggers": null,
+                "agreementAgrProProduct": null,
+                "agrOffJpmGuranteeExist": null,
+                "agrOffInCloseoutNet": null,
+                "agrOffInNovationNet": null,
+                "agrOffInSettlementNet": null,
+                "isCrossMargined": null,
+                "familyName": null,
+                "upfrontRequiredFlag": null,
+                "stpLevel": null,
+                "excludeFromDiary": null,
+                "marginingSystem": null,
+                "interestMarginingSystem": null,
+                "baseId": null,
+                "asiaMoveAutomationFlag": null,
+                "defaultAssetType": null,
+                "moveDisabledComment": null,
+                "baseCashMoveProcessingLimits": null,
+                "csr": null,
+                "imCallDirection": null,
+                "coltToBeDoneFlag": null,
+                "isEligibleForTradeFlag": null,
+                "coltStatus": null,
+                "regimeAndComplianceDate": null,
+                "investmentAdvisor": null,
+                "otcCrossMarginingFlag": null,
+                "eligibilitySet": null,
+                "statementLegalEntityName": null,
+                "isCodedStatement": null,
+                "codedStatementName": null,
+                "isCsrSignedOff": null,
+                "idPrtn": null,
+                "citAsOffDate": null,
+                "citUntilDate": null,
+                "independentAmountType": null,
+                "independentAmount": null,
+                "eligibleTradeCurrencies": null,
+                "eligibleTradesScheduled": null,
+                "eligibleTradesByDate": null,
+                "leSubEntity": null,
+                "leSubEntityReportingCurrency": null,
+                "borrowFromLESubEntity": null,
+                "ccp": null,
+                "ccpCode": null,
+                "linkLeSubEntities": null,
+                "linkCpSubEntities": null,
+                "clientAgreementAlias": null,
+                "clientAgreementAliases": null,
+                "counterpartyIndustryClassification": null,
+                "clearingAccountNumber": null,
+                "splitTypeConfigs": null,
+                "imosFundingModel": null,
+                "transferTimeCurrencies": null,
+                "securityTransferTimes": null,
+                "statementSla": null,
+                "statementTimezone": null,
+                "stmtTimezone": null,
+                "distributionAndInterests": null,
+                "mailboxName": null,
+                "mailboxEmailAddress": null,
+                "securitiesLongboxModel": null,
+                "cashLongboxModel": null,
+                "autoBookAgreedPayments": null,
+                "securityMap": null,
+                "clearedAutoFundAccount": null,
+                "nonClearedAutoFundCurrency": null,
+                "nonClearedAutoFundAccount": null,
+                "preferredAccountIds": null,
+                "postRegulations": null,
+                "receiveRegulations": null,
+                "legalEntityOwnershipCaids": null,
+                "simmCalculationCurrency": null,
+                "indexDecomposition": null,
+                "businessLocations": null,
+                "leCreditRatingRuleDescription": null,
+                "cpCreditRatingRuleDescription": null,
+                "statementType": null,
+                "isImReconRequired": null,
+                "marginFlowTypeOverride": null,
+                "clientBranchOnStatementFlag": null,
+                "dealId": null,
+                "collateralMonitoringGroup": null,
+                "collateralConfidenceFactor": null,
+                "curePeriod": null,
+                "fxRegion": null,
+                "statementEmailSubject": null,
+                "nettingsetRootId": null,
+                "segmentId": null,
+                "pbLegalEntityMTA": null,
+                "pbCounterPartyMTA": null,
+                "pbLegalEntityThreshold": null,
+                "pbCounterPartyThreshold": null,
+                "linkedQueryIdOverride": null,
+                "greaterOfClientAgreementPreference": null,
+                "segments": null,
+                "moveDisabledReason": null,
+                "inflationIndexedUnitCurrency": null,
+                "inflationIndexedUnitApplicableForThresholdAndMinimumTransferAmount": null,
+                "feedDependencies": null,
+                "restrictAutomatedReuseOfCollateral": null,
+                "agreementShortName": null,
+                "agreementShortName2": null,
+                "agreementShortName3": null,
+                "consentOfRepledge": null,
+                "statementPassword": null,
+                "markSameDayHoliday": null,
+                "roundingForCash": null,
+                "roundingValueForCash": null,
+                "roundingForSecurities": null,
+                "roundingValueForSecurities": null,
+                "prodParallel": null,
+                "terminationDate": null,
+                "metaTicket": null,
+                "traderBook": null,
+                "crossMarginEntities": {
+                    "source": "USER",
+                    "sourceId": null,
+                    "value": [
+                        {
+                            "counterParty": {
+                                "role": "COUNTERPARTY",
+                                "eci": "0220883272",
+                                "ucn": "009900094000",
+                                "spn": "9031065",
+                                "name": "COAST TO COAST CATERING",
+                                "lei": null,
+                                "sapLeCode": null,
+                                "principalLei": null,
+                                "principalEci": null,
+                                "cbd": null,
+                                "leCode": null,
+                                "goldenEntityEci": null,
+                                "goldenEntityName": null
+                            },
+                            "legalEntities": [
+                                {
+                                    "legalEntity": {
+                                        "role": "LEGAL_OWNER",
+                                        "eci": "0220883112",
+                                        "ucn": "009900084000",
+                                        "spn": "9022035",
+                                        "name": "COAST TO COAST CATERING",
+                                        "lei": null,
+                                        "sapLeCode": null,
+                                        "principalLei": null,
+                                        "principalEci": null,
+                                        "cbd": null,
+                                        "leCode": null,
+                                        "goldenEntityEci": null,
+                                        "goldenEntityName": null
+                                    },
+                                    "legalAgreementProfiles": {
+                                        "PFS": [
+                                            {
+                                                "profileId": "10000000244027",
+                                                "lineOfBusiness": "PFS",
+                                                "profileType": "CONTRACT",
+                                                "profileStatus": "LIVE",
+                                                "createdBy": null,
+                                                "createdDtm": null,
+                                                "updatedDtm": null,
+                                                "updatedBy": null,
+                                                "version": 2,
+                                                "attributes": null,
+                                                "approvedDtm": null,
+                                                "approvedBy": null,
+                                                "comments": null,
+                                                "activationDtm": null
+                                            },
+                                            {
+                                                "profileId": "10000000244029",
+                                                "lineOfBusiness": "PFS",
+                                                "profileType": "CONTRACT",
+                                                "profileStatus": "LIVE",
+                                                "createdBy": null,
+                                                "createdDtm": null,
+                                                "updatedDtm": null,
+                                                "updatedBy": null,
+                                                "version": 5,
+                                                "attributes": null,
+                                                "approvedDtm": null,
+                                                "approvedBy": null,
+                                                "comments": null,
+                                                "activationDtm": null
+                                            }
+                                        ],
+                                        "FI_REPO": [
+                                            {
+                                                "profileId": "10000000244028",
+                                                "lineOfBusiness": "FI_REPO",
+                                                "profileType": "CONTRACT",
+                                                "profileStatus": null,
+                                                "createdBy": null,
+                                                "createdDtm": null,
+                                                "updatedDtm": null,
+                                                "updatedBy": null,
+                                                "version": 6,
+                                                "attributes": null,
+                                                "approvedDtm": null,
+                                                "approvedBy": null,
+                                                "comments": null,
+                                                "activationDtm": null
+                                            },
+                                            {
+                                                "profileId": "10000000244029",
+                                                "lineOfBusiness": "FI_REPO",
+                                                "profileType": "CONTRACT",
+                                                "profileStatus": null,
+                                                "createdBy": null,
+                                                "createdDtm": null,
+                                                "updatedDtm": null,
+                                                "updatedBy": null,
+                                                "version": 6,
+                                                "attributes": null,
+                                                "approvedDtm": null,
+                                                "approvedBy": null,
+                                                "comments": null,
+                                                "activationDtm": null
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "crossMarginEntitiesRules": {
+                    "source": "USER",
+                    "sourceId": null,
+                    "value": [
+                        {
+                            "lineOfBusiness": "PFS",
+                            "entityRules": [
+                                {
+                                    "ruleId": "EQUITY_PB_FAMILY",
+                                    "ruleDescription": "Include Equity PB Family",
+                                    "conditions": {
+                                        "@type": ".AndConnector",
+                                        "type": "AND",
+                                        "failMode": "FALSE",
+                                        "expr": [
+                                            {
+                                                "@type": ".operators.EqCondition",
+                                                "expr": [
+                                                    {
+                                                        "@type": ".operands.JsonPathOperand",
+                                                        "id": {
+                                                            "@type": ".NamedID",
+                                                            "id": "instrument.familyDescription"
+                                                        },
+                                                        "type": "JSONPATH",
+                                                        "failMode": "FALSE"
+                                                    },
+                                                    {
+                                                        "@type": ".operands.StringOperand",
+                                                        "value": "PB_FAM"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "@type": ".operators.EqCondition",
+                                                "expr": [
+                                                    {
+                                                        "@type": ".operands.JsonPathOperand",
+                                                        "id": {
+                                                            "@type": ".NamedID",
+                                                            "id": "instrument.marginFlag"
+                                                        },
+                                                        "type": "JSONPATH",
+                                                        "failMode": "FALSE"
+                                                    },
+                                                    {
+                                                        "@type": ".operands.StringOperand",
+                                                        "value": "TRUE"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "action": "INCLUDE",
+                                    "isEnabled": "YES"
+                                },
+                                {
+                                    "ruleId": "EXCLUDE_FAMILY_OVERRIDE",
+                                    "ruleDescription": "Excluded Family Override",
+                                    "conditions": {
+                                        "@type": ".InCondition",
+                                        "operand": {
+                                            "@type": ".JsonPathOperand",
+                                            "id": {
+                                                "@type": ".NamedID",
+                                                "id": "familyId"
+                                            },
+                                            "type": "JSONPATH",
+                                            "failMode": "FALSE"
+                                        },
+                                        "membersType": "STRING",
+                                        "members": [
+                                            "[]"
+                                        ]
+                                    },
+                                    "action": "EXCLUDE",
+                                    "isEnabled": "YES"
+                                }
+                            ]
+                        },
+                        {
+                            "lineOfBusiness": "CLEARING",
+                            "entityRules": [
+                                {
+                                    "ruleId": "ACCOUNT_SPN",
+                                    "ruleDescription": "Account SPN",
+                                    "conditions": {
+                                        "@type": ".AndConnector",
+                                        "type": "AND",
+                                        "failMode": "FALSE",
+                                        "expr": [
+                                            {
+                                                "@type": ".operators.EqCondition",
+                                                "expr": [
+                                                    {
+                                                        "@type": ".operands.JsonPathOperand",
+                                                        "id": {
+                                                            "@type": ".NamedID",
+                                                            "id": "account.SPN"
+                                                        },
+                                                        "type": "JSONPATH",
+                                                        "failMode": "FALSE"
+                                                    },
+                                                    {
+                                                        "@type": ".operands.StringOperand",
+                                                        "value": "7014279"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "@type": ".operators.EqCondition",
+                                                "expr": [
+                                                    {
+                                                        "@type": ".operands.JsonPathOperand",
+                                                        "id": {
+                                                            "@type": ".NamedID",
+                                                            "id": "account.marginFlag"
+                                                        },
+                                                        "type": "JSONPATH",
+                                                        "failMode": "FALSE"
+                                                    },
+                                                    {
+                                                        "@type": ".operands.StringOperand",
+                                                        "value": "TRUE"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "action": "INCLUDE",
+                                    "isEnabled": "YES"
+                                },
+                                {
+                                    "ruleId": "EXCLUDE_ACCOUNT_OVERRIDE",
+                                    "ruleDescription": "Excluded Account Override",
+                                    "conditions": {
+                                        "@type": ".InCondition",
+                                        "operand": {
+                                            "@type": ".JsonPathOperand",
+                                            "id": {
+                                                "@type": ".NamedID",
+                                                "id": "account.id"
+                                            },
+                                            "type": "JSONPATH",
+                                            "failMode": "FALSE"
+                                        },
+                                        "membersType": "STRING",
+                                        "members": [
+                                            "[]"
+                                        ]
+                                    },
+                                    "action": "EXCLUDE",
+                                    "isEnabled": "YES"
+                                }
+                            ]
+                        },
+                        {
+                            "lineOfBusiness": "FI_REPO",
+                            "entityRules": [
+                                {
+                                    "ruleId": "ACCOUNT_SPN",
+                                    "ruleDescription": "Account SPN",
+                                    "conditions": {
+                                        "@type": ".EqCondition",
+                                        "expr": [
+                                            {
+                                                "@type": ".operands.JsonPathOperand",
+                                                "id": {
+                                                    "@type": ".NamedID",
+                                                    "id": "account.SPN"
+                                                },
+                                                "type": "JSONPATH",
+                                                "failMode": "FALSE"
+                                            },
+                                            {
+                                                "@type": ".operands.StringOperand",
+                                                "value": "7014279"
+                                            }
+                                        ]
+                                    },
+                                    "action": "INCLUDE",
+                                    "isEnabled": "YES"
+                                },
+                                {
+                                    "ruleId": "EXCLUDE_ACCOUNT_OVERRIDE",
+                                    "ruleDescription": "Excluded Account Override",
+                                    "conditions": {
+                                        "@type": ".InCondition",
+                                        "operand": {
+                                            "@type": ".JsonPathOperand",
+                                            "id": {
+                                                "@type": ".NamedID",
+                                                "id": "account.id"
+                                            },
+                                            "type": "JSONPATH",
+                                            "failMode": "FALSE"
+                                        },
+                                        "membersType": "STRING",
+                                        "members": [
+                                            "[]"
+                                        ]
+                                    },
+                                    "action": "EXCLUDE",
+                                    "isEnabled": "YES"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "crossMarginProductsRules": {
+                    "source": "USER",
+                    "sourceId": null,
+                    "value": [
+                        {
+                            "lineOfBusiness": "PRINCIPAL_DERIVATIVE",
+                            "productRules": [
+                                {
+                                    "ruleId": "111",
+                                    "ruleDescription": "rule description1",
+                                    "conditions": null,
+                                    "action": "INCLUDE",
+                                    "isEnabled": "YES"
+                                },
+                                {
+                                    "ruleId": "1222",
+                                    "ruleDescription": "rule description2",
+                                    "conditions": null,
+                                    "action": "EXCLUDE",
+                                    "isEnabled": "NO"
+                                }
+                            ]
+                        },
+                        {
+                            "lineOfBusiness": "PFS",
+                            "productRules": [
+                                {
+                                    "ruleId": "111",
+                                    "ruleDescription": "rule description1",
+                                    "conditions": null,
+                                    "action": "INCLUDE",
+                                    "isEnabled": "YES"
+                                },
+                                {
+                                    "ruleId": "1222",
+                                    "ruleDescription": "rule description2",
+                                    "conditions": null,
+                                    "action": "EXCLUDE",
+                                    "isEnabled": "NO"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "crossMarginCallManagement": null,
+                "crossMarginCollateralManagement": null,
+                "simmriskClassMultipliers": null
+            },
+            "approvedDtm": null,
+            "approvedBy": null,
+            "comments": null,
+            "activationDtm": null
+        },
+        "linkedProfiles": {
+            "accounts": [],
+            "statements": [],
+            "settlementInstructions": [],
+            "consolidatedStatement": [],
+            "contacts": [],
+            "cassAccounts": [],
+            "nettingGroupProfiles": [],
+            "disputeProfiles": [],
+            "commitmentProfiles": [],
+            "requirementProfiles": [],
+            "contactProfiles": [],
+            "defaultProfiles": [],
+            "collateralMoveSimulationProfiles": []
+        },
+        "profileOverrides": null
+    }
+}
