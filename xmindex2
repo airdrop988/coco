@@ -103,7 +103,13 @@ class XMProfileFields extends Component {
                                     createdBy: this.props.userInfo?.username || 'system'
                                 };
                                 
-                                formData.compositeProfile.legalAgreement.attributes.masterAgreements.push(newAgreement);
+                               // formData.compositeProfile.legalAgreement.attributes.masterAgreements.push(newAgreement);
+
+const lineOfBusiness = newEntry.lineOfBusiness?.value || '';
+if (!formData.compositeProfile.legalAgreement.attributes.crossMarginEntities.value[0].legalEntities[0].legalAgreementProfiles[lineOfBusiness]) {
+    formData.compositeProfile.legalAgreement.attributes.crossMarginEntities.value[0].legalEntities[0].legalAgreementProfiles[lineOfBusiness] = [];
+}
+formData.compositeProfile.legalAgreement.attributes.crossMarginEntities.value[0].legalEntities[0].legalAgreementProfiles[lineOfBusiness].push(newAgreement);
                                 
                                 this.toggleModal({ state: false });
                                 
@@ -112,9 +118,8 @@ class XMProfileFields extends Component {
                                 }
                                 
                                 if (this.state.gridApi["masterAgreements"]) {
-                                    this.state.gridApi["masterAgreements"].setRowData(
-                                        formData.compositeProfile.legalAgreement.attributes.masterAgreements
-                                    );
+                                    const updatedProfiles = this.processLegalAgreementProfiles(formData);
+this.state.gridApi["masterAgreements"].setRowData(updatedProfiles);
                                 }
                                 
                                 this.setState({ resetTable: false });
