@@ -1,0 +1,1065 @@
+import React, {Component, Fragment} from 'react';
+import autoBind from 'react-autobind';
+import {bindActionCreators} from 'redux';
+import {connect} from 'react-redux';
+import * as actions from './action';
+import api from './api';
+import {configSetup} from '../../../javascript/config';
+import {
+    mixinCheckGlobalConditions,
+    mixinOnFormUpdate,
+    mixinOnTableUpdate,
+    mixinOnUpdate
+} from '../../../javascript/mixins'
+import {fetchConfig} from './config/config';
+import {isReadWrite, isUpload} from '../../../javascript/entitlementUtils';
+import {DataGrid} from '@jpmuitk/data-grid';
+import {Spinner, Tabs} from '@jpmuitk/components';
+
+import Layout from '../../Common/Layout/Layout';
+import Header from '../../Common/Header/Header';
+
+import AgreementParameters from './subviews/agency/agreementParameters/index';
+import Accounts from './subviews/agency/accounts/index';
+import Preferences from './subviews/agency/preferences/index';
+import Statements from './subviews/agency/statements/index';
+import SSIStatement from './subviews/agency/ssiSetup/index';
+import TradeSetup from './subviews/agency/tradeSetup/index';
+import IBAgreementParameters from './subviews/derivative/agreementParameters/index';
+import CsaLegalData from './subviews/derivative/csaLegalData/index';
+import IsdaLegalData from './subviews/derivative/isdaLegalData/index';
+import AdditionalAttributes from './subviews/derivative/additionalAttributes/index';
+import IBColtDetails from './subviews/derivative/coltDetails/index';
+import IBStatements from './subviews/derivative/statements/index';
+import IBSSISetup from './subviews/derivative/ssiSetup/index';
+import IBDisputes from './subviews/derivative/disputes/index';
+import IBAccounts from './subviews/derivative/accounts/index';
+
+import TBALegalTerms from './subviews/tba/legalTerms/index';
+import TBAAccounts from './subviews/tba/accounts/index';
+import TBAHistory from './subviews/tba/history/index';
+import TBANettingGroup from './subviews/tba/nettingGroup/index';
+import TBAStatements from './subviews/tba/statements/index';
+import TBAPreferences from './subviews/tba/preferences/index';
+import TBADisputes from './subviews/tba/disputes/index';
+
+import REPOAgreementParameters from './subviews/repo/agreementParameters/index';
+import REPOAccounts from './subviews/repo/accounts/index';
+import REPOHistory from './subviews/repo/history/index';
+import REPONettingGroup from './subviews/repo/nettingGroup/index';
+import REPOcounterPartyGroup from './subviews/repo/counterPartyGroup/index';
+import REPOStatements from './subviews/repo/statements/index';
+
+import CVDetails from './subviews/cv/details/index';
+import CVHistory from './subviews/cv/history/index';
+import CVStatements from './subviews/cv/statements/index';
+
+import TCPAgreementParameters from './subviews/tcp/agreementParameters/index';
+import TCPStatements from './subviews/tcp/statements/index';
+import TCPSSISetup from './subviews/tcp/ssiSetup/index';
+import TCPAccounts from './subviews/tcp/accounts/index';
+import TCPCommitment from './subviews/tcp/commitment/index';
+
+//XMARGIN
+import XMProileParameters from './subviews/xm/profile/index';
+
+import {dropdownPresets} from '../../../config/dropdownPresets';
+import './style.scss';
+import {
+  CLIENT_VALUATION,
+  DCM,
+  FI_REPO,
+  PRINCIPAL_DERIVATIVE,
+  REPO,
+  STATIC_DATA_KEYS,
+  TBA,
+  TCP,
+  XMARGIN,
+  Y_TYPE,
+  YN_TYPES
+} from "../../Common/constants";
+import HierarchicalGrid from "../../Common/HierarchicalDataTable/HierarchicalGrid";
+import * as appStateAction from "../../../actions/appStateAction";
+import {Debouncer, objectExists} from "../../../javascript/utility";
+import {MessageBox} from "../../Common/messagebox";
+import {getCvProfileDefaults} from "../Profile/subviews/cv/details/cvProfilePreferences"
+import {validateInputData} from "./validateFormData";
+import moment from "moment";
+
+const debounce = new Debouncer();
+
+const reducerkey = 'profile';
+
+class _Component extends Component {
+  constructor(props) {
+    super(props);
+    this.searchFields =[];
+    this.state = {
+      permissions:{readonly: this.getPermission(props),
+          partialReadonly:  this.getPermission(props),
+          enableDropDown : (DCM.toUpperCase() === props.appState.lob.toUpperCase()) ? !props.userInfo.enableAMSProfile : true
+      },
+      config: null,
+      gridApi: {},
+      search:{
+        spinner: false
+      },
+      error: {
+        show: false,
+        message: null
+      },
+      formTab: this.getFormTab(),
+      submitData: {}
+    };
+
+    const {user} = this.props.appState;
+
+    this.bindedEvents = {
+      CREATE_NEW_DERIVATIVES_PROFILE: async() => {
+        await this.props.actions.createNewEntry({
+          state: this.props[reducerkey],
+          step: {view: 'form', subview: this.state.formTab[0].id, readonly: false },
+          entryData: {"compositeProfile":{"legalAgreement": {"attributes":{"calculationType" : { "source": "USER", "value" : "DERIVATIVES"}}}}}
+        });
+        this.setState({sidebarHide: true});
+      },
+      CREATE_NEW_CV_PROFILE: async(profileType) => {
+          await  this.loadAllStaticData({});
+          let initCvProfData = getCvProfileDefaults(this,profileType);
+          await this.props.actions.createNewEntry({
+              state: this.props[reducerkey],
+              step: {view: 'form', subview: this.state.formTab[0].id, readonly: false },
+              entryData: initCvProfData
+          });
+          this.setState({sidebarHide: true});
+      },
+      CREATE_NEW_AGREEMENT_ONCHANGE: async(profileType) => {
+          await this.loadAllStaticData({});
+          const type = profileType === 'Derivative Agreement' ? 'DERIVATIVES' : 'CLEARED_ACCOUNT';
+          await this.props.actions.createNewEntry({
+              state: this.props[reducerkey],
+              step: {view: 'form', subview: this.state.formTab[0].id, readonly: false },
+              entryData: {"compositeProfile":{"legalAgreement": {"attributes":{"calculationType" : { "source": "USER", "value" : type},"prodParallel" : { "source": "DEFAULT", "value" : 'NO'}, "goLiveDate" : { "source": "DEFAULT", "value" : moment(new Date()).format('DD-MMM-YYYY')}}}}}
+          });
+          this.setState({sidebarHide: true});
+      },
+      CREATE_TCP_PROFILE: async(profileType) => {
+          await  this.loadAllStaticData({});
+          await this.props.actions.createNewEntry({
+              state: this.props[reducerkey],
+              step: {view: 'form', subview: this.state.formTab[0].id, readonly: false },
+              entryData: {"compositeProfile":{}}
+          });
+          this.setState({sidebarHide: true});
+      },
+    }
+    autoBind(this);
+  };
+
+  getPermission(props) {
+    return (props.appState.lob.toUpperCase() === CLIENT_VALUATION.toUpperCase()) ?  !isReadWrite(this.props.userInfo,'DETAILS_RW') : !isReadWrite(this.props.userInfo,'AGR_PARAM_RW');
+  }
+
+  getFormTab = () => {
+      let formTab = [];
+      const lobName = this.props.appState.lob.toUpperCase();
+      switch (lobName){
+        case 'DCM':
+          return  [{ id: 'agreementParameters', name: "Agreement Parameters", enabled: null },
+            { id: 'accounts', name: "Accounts", enabled: null },
+            { id: 'preferences', name: "Preferences", enabled: null },
+            { id: 'statements', name: "Statements", enabled: null },
+            { id: 'ssiSetup', name: "SSI Setup", enabled: null },
+            { id: 'tradeSetup', name: "Trade Setup", enabled: null }];
+        case PRINCIPAL_DERIVATIVE:
+          return [{ id: 'ibAgreementParameters', name: "Agreement Parameters", enabled: null },
+            { id: 'ibAccounts', name: "Accounts", enabled: null },
+            { id: 'ibSsiSetup', name: "SSI Setup", enabled: null },
+            { id: 'ibStatements', name: "Statements", enabled: null },
+            { id: 'isdaLegalData', name: "ISDA Legal Data", enabled: null },
+            { id: 'csaLegalData', name: "CSA Legal Data", enabled: null },
+            { id: 'additionalAttributes', name: "Additional Attributes", enabled: null },
+            { id: 'ibDisputes', name: "Disputes", enabled: null },
+            { id: 'ibColtDetails', name: "COLT", enabled: null }];
+        case TBA:
+          return [{ id: 'tbaLegalTerms', name: "Legal Terms", enabled: null },
+            { id: 'tbaAccounts', name: "Accounts", enabled: null },
+            { id: 'tbaStatements', name: "Statements", enabled: null },
+            { id: 'tbaPreferences', name: "Preferences", enabled: null },
+            { id: 'tbaHistory', name: "History", enabled: null },
+            { id: 'tbaNettingGroup', name: "Netting Group", enabled: null },
+            { id: 'tbaDisputes', name: "Disputes", enabled: null}];
+        case REPO:
+        case FI_REPO:
+          return [{ id: 'repoAgreementParameters', name: "Legal Terms", enabled: null },
+            { id: 'repoAccounts', name: "Accounts", enabled: null },
+            { id: 'repoStatements', name: "Statements", enabled: null },
+            { id: 'repoHistory', name: "History", enabled: null },
+            { id: 'repoNettingGroup', name: "Netting Group", enabled: null },
+            { id: 'repoCounterPartyGroup', name: "Counterparty Group", enabled: null }];
+        case CLIENT_VALUATION:
+          return [{ id: 'details', name: "Details", enabled: null },
+            { id: 'statements', name: "Statements", enabled: null },
+            { id: 'history', name: "History", enabled: null }];
+        case TCP:
+          return [{ id: 'tcpAgreementParameters', name: "Agreement Parameters", enabled: null },
+            { id: 'tcpStatements', name: "Statements", enabled: null },
+            { id: 'tcpCommitment', name: "Commitment / Requirement", enabled: null },
+            { id: 'tcpAccounts', name: "Accounts", enabled: null },
+            { id: 'tcpSsiSetup', name: "SSI Setup", enabled: null }];
+        case XMARGIN.toUpperCase():
+          return [{ id: 'xmProfileParameters', name: "Profile Parameters", enabled: null },
+            { id: 'xmMarginEntity', name: "Margin Entity", enabled: null },
+            { id: 'xmProduct', name: "Product", enabled: null },
+            { id: 'xmStatement', name: "Statements", enabled: null }
+          ];
+      }
+      return formTab;
+  };
+
+  async componentDidMount () {
+      this.setup(fetchConfig(this.props.appState.lob));
+      this.changeStep({view: 'list'});
+      this.props.actions.fetchInit(this.props[reducerkey]);
+      /*if (PRINCIPAL_DERIVATIVE.toUpperCase() === this.props.appState.lob.toUpperCase()) {
+          await this.props.actions.loadAllReferenceData({
+              state: this.props[reducerkey],
+              lob: this.props.appState.lob.toUpperCase(),
+              keys:STATIC_DATA_KEYS
+          });
+      }*/
+  };
+
+  componentWillUnmount() {
+    this.onCancel();
+  };
+
+  componentDidUpdate (prevProps) {
+    const {has, reason} = this.props[reducerkey].error;
+    if (prevProps[reducerkey].error.has !== has && has) {
+      this.toggleError(true, reason);
+    };
+  };
+
+  setup = (config) => {
+    const sidebar = {
+      onDropdownChange: (val, obj, key, filterList) => {
+          this.state.config.sidebar.search.results = [];
+          if (obj.isProfileStatus) {
+              this.state.config.sidebar.statusDropdown.selected = config.sidebar.statusDropdown.options.find(x => x.value === val) || {value: null};
+              this.state.config.sidebar.searchFields = this.getSearchFields(this.state.config.sidebar.searchFields, val, filterList[key].dropdown.selected, key);
+          } else if (obj.csaTypeDropdown) {
+              this.state.config.sidebar.csaTypeDropdown.selected = config.sidebar.csaTypeDropdown.options.find(x => x.value === val) || {value: null};
+              this.state.config.sidebar.searchFields = this.getSearchFields(this.state.config.sidebar.searchFields, val, filterList[key].dropdown.selected, key);
+          } else if (obj.ynDropdown) {
+              this.state.config.sidebar.ynDropdown.selected = config.sidebar.ynDropdown.options.find(x => x.value === val) || {value: null};
+              this.state.config.sidebar.searchFields = this.getSearchFields(this.state.config.sidebar.searchFields, val, filterList[key].dropdown.selected, key);
+          } else if (obj.onlyYDropdown) {
+              this.state.config.sidebar.onlyYDropdown.selected = config.sidebar.onlyYDropdown.options.find(x => x.value === val) || {value: null};
+              this.state.config.sidebar.searchFields = this.getSearchFields(this.state.config.sidebar.searchFields, val, filterList[key].dropdown.selected, key);
+          } else if (obj.regionDropdown) {
+              this.state.config.sidebar.regionDropdown.selected = config.sidebar.regionDropdown.options.find(x => x.value === val) || {value: null};
+              this.state.config.sidebar.searchFields = this.getSearchFields(this.state.config.sidebar.searchFields, val, filterList[key].dropdown.selected, key);
+          } else if (obj.sourceSystemDropdown) {
+              this.state.config.sidebar.sourceSystemDropdown.selected = config.sidebar.sourceSystemDropdown.options.find(x => x.value === val) || {value: null};
+              this.state.config.sidebar.searchFields = this.getSearchFields(this.state.config.sidebar.searchFields, val, filterList[key].dropdown.selected, key);
+          } else {
+              let sidebar = Object.assign({}, this.state.config.sidebar),
+                  filterCriteriaList = Object.assign([], filterList),
+                  topDropdown = Object.assign({}, filterCriteriaList[key].dropdown);
+              sidebar.searchFields.splice(key, 1);
+              let selectedObj = config.sidebar.dropdown.options.find(x => x.value === val) || {value: null};
+              let selectedItem = Object.assign({}, selectedObj),
+                  value = selectedItem.value;
+              if(YN_TYPES.includes(selectedItem.value)){
+                  value = "YN_TYPE";
+              }
+              if(Y_TYPE.includes(selectedItem.value)){
+                  value = "Y_TYPE";
+              }
+              switch (value) {
+                  case 'PROFILE_STATUS':
+                      topDropdown.selected = selectedItem;
+                      filterCriteriaList[key].dropdown = topDropdown;
+                      sidebar.changeComp = {
+                          compKey: key,
+                          PROFILE_STATUS: true
+                      };
+                      break;
+                  case 'CSA_TYPE':
+                      topDropdown.selected = selectedItem;
+                      filterCriteriaList[key].dropdown = topDropdown;
+                      sidebar.changeComp = {
+                          compKey: key,
+                          CSA_TYPE: true
+                      };
+                      break;
+                  case 'REGION':
+                      topDropdown.selected = selectedItem;
+                      filterCriteriaList[key].dropdown = topDropdown;
+                      sidebar.changeComp = {
+                          compKey: key,
+                          REGION_TYPE: true
+                      };
+                      break;
+                  case 'YN_TYPE':
+                      topDropdown.selected = selectedItem;
+                      filterCriteriaList[key].dropdown = topDropdown;
+                      sidebar.changeComp = {
+                          compKey: key,
+                          YN_TYPE: true
+                      };
+                      break;
+                  case 'Y_TYPE':
+                      topDropdown.selected = selectedItem;
+                      filterCriteriaList[key].dropdown = topDropdown;
+                      sidebar.changeComp = {
+                          compKey: key,
+                          Y_TYPE: true
+                      };
+                      sidebar.onlyYDropdown.selected = config.sidebar.onlyYDropdown.options.find(x => x.value === val) || {value: null};
+                      sidebar.searchFields = this.getSearchFields(this.state.config.sidebar.searchFields, val, filterList[key].dropdown.selected, key);
+                      break;
+                  case 'SOURCE_SYSTEM':
+                      topDropdown.selected = selectedItem;
+                      filterCriteriaList[key].dropdown = topDropdown;
+                      sidebar.changeComp = {
+                          compKey: key,
+                          SOURCE_SYSTEM: true
+                      };
+                      break;
+                  default:
+                      topDropdown.selected = selectedItem;
+                      filterCriteriaList[key].dropdown = topDropdown;
+                      sidebar.changeComp = {
+                          compKey: key,
+                          SEARCH: true
+                      };
+              }
+              sidebar.filterList = filterCriteriaList;
+              sidebar.dropdown = topDropdown;
+              this.state.config.sidebar = sidebar;
+          }
+          this.setState({config: this.state.config});
+      },
+      onSearchUpdate: (val, key, filterList) => {
+          let selected = filterList[key].dropdown.selected;
+          let searchFields = this.state.config.sidebar.searchFields || [];
+          if (val.length > 0) {
+              this.state.config.sidebar.searchFields = this.getSearchFields(searchFields, val, selected, key);
+              this.state.config.sidebar.searchFields = searchFields;
+          }
+      },
+      onSearchClick: async(entry) => {
+        await this.props.actions.fetchTableEntry({
+          state: this.props[reducerkey],
+          query: [],
+          step: {view: 'form', subview: this.state.formTab[0].id, readonly: false }
+        });
+        this.setState({sidebarHide: false});
+      },
+      onSearchClear: (key) => {
+          this.state.config.sidebar.searchFields.map((item, index) => {
+              if(item.key === key){
+                  item.value="";
+              }
+          });
+          this.state.config.sidebar.search.results = [];
+          this.setState({config: this.state.config});
+      }
+    };
+
+    let formTab = this.state.formTab.map((x, i) => {
+      x.enabled = !!config.tabs[x.id].enabled ? config.tabs[x.id].enabled : false
+      x.name = !!config.tabs[x.id].name ? config.tabs[x.id].name : x.name
+      return x
+    });
+    this.setState({config: configSetup({config, sidebar}), formTab});
+  };
+
+  getSearchFields = (searchFields, val, selected, key) => {
+        let isSearchKeyPresent = false;
+        if (selected.value === "READY_FOR_COLT") {
+            val = 'YES';
+        }
+        if (searchFields.length > 0) {
+            for (let i = 0; i < searchFields.length; i++) {
+                if ((searchFields[i].searchKey === selected.value) && (searchFields[i].key === key)) {
+                    searchFields[i].value = val;
+                    isSearchKeyPresent = true;
+                }
+            }
+            if (!isSearchKeyPresent) {
+                searchFields.push({value: val, searchKey: selected.value, key: key});
+            }
+        } else {
+            searchFields.push({value: val, searchKey: selected.value, key: key});
+        }
+        return searchFields;
+    };
+
+  resetFilter = (item, filterList) => {
+        this.state.config.sidebar.searchFields = [];
+        this.state.config.sidebar.filterList = [];
+        this.state.config.sidebar.changeComp = {compKey: 0, SEARCH: true};
+        this.setState({config: this.state.config});
+    };
+
+  onSearch = async(item) => {
+        if(item && item.searchFields && item.searchFields.length >0){
+            this.toggleSearchProgress(true);
+            let {success, data} = await api.fetchSearchResults(item.searchFields, this.props.appState.lob.toUpperCase());
+            this.toggleSearchProgress(false);
+            this.state.config.sidebar.search.results = success ? data : [];
+            if(!success){
+                MessageBox.error('Profile Search Error', "Cannot retrieve data", 500);
+                //this.toggleError(true, 'Server error:  cannot retrieve data.')
+            } else{
+                this.props.actions.fetchTable({
+                    state: this.props[reducerkey],
+                    tabledata: data,
+                    step: {view: 'list', subview: null, readonly: false}
+                });
+            }
+            this.setState({config: this.state.config});
+        }
+    };
+
+  onGridReady = ({e, refKey}) => {
+    const {gridApi} = this.state,
+          {api} = e;
+
+    gridApi[refKey] = api;
+
+    this.setState({gridApi}, () => {
+      api.sizeColumnsToFit();
+      this.gridBindEvents({api: gridApi[refKey]})
+    })
+  };
+
+  gridBindEvents = ({api}) => {
+
+  };
+
+  changeStep = ({view, subview = null}) => {
+    let {readonly} = this.props[reducerkey].step;
+    this.props.actions.update(this.props[reducerkey], {step:  {view, subview, readonly}});
+  };
+
+  changeContent = (e, val) => {
+      const {appState, userInfo} = this.props;
+      let {lob} = appState,
+          isReadOnly = !isReadWrite(userInfo, lob.toUpperCase()),
+          isUploadAccess = isUpload(userInfo, lob.toUpperCase()),
+          {id} = this.state.formTab.find(x => x.name === val),
+          {view, readonly} = this.props[reducerkey].step;
+      this.props.actions.update(this.props[reducerkey], {step: {view, subview: id, readonly}});
+  };
+
+  onCellClicked = (item, key) => {
+        let obj = (key === "hierarchicalTable") ? item.e : item;
+        this.onSelect(obj, false);
+    };
+
+  loadAllStaticData = async(obj) => {
+        await this.props.actions.loadAllStaticData({
+            state: this.props[reducerkey],
+            lob: this.props.appState.lob.toUpperCase(),
+            keys:STATIC_DATA_KEYS
+        });
+    };
+
+  onSelect = async(obj, isReadOnly) => {
+      let {appState, userInfo} = this.props,
+          {currentSection, lob} = appState,
+          isUploadAccess = isUpload(userInfo, lob.toUpperCase()),
+          profileReadOnly = false;
+
+      await this.loadAllStaticData(obj);
+      await this.props.actions.fetchTableEntry({
+          state: this.props[reducerkey],
+          query: obj.data.profileId,
+          status: obj.data.status,
+          lob: lob.toUpperCase(),
+          step: {view: 'form', subview: this.state.formTab[0].id, readonly: false},
+          profileReadOnly: profileReadOnly
+      });
+      this.setState({sidebarHide: true});
+      if (PRINCIPAL_DERIVATIVE.toUpperCase() === lob.toUpperCase()) {
+          await this.props.actions.getColtDetails({
+              state: this.props[reducerkey],
+              agreementId: obj.data.profileId,
+              lob: lob.toUpperCase(),
+              step: {view: 'form', subview: this.state.formTab[0].id, readonly: false}
+          });
+          await this.props.actions.getAllColtAudits({
+              state: this.props[reducerkey],
+              type: obj.data.profileType,
+              agreementId: obj.data.profileId,
+              lob: lob.toUpperCase(),
+              step: {view: 'form', subview: this.state.formTab[0].id, readonly: false}
+          });
+      }
+  };
+
+  onCancel = () => {
+    this.changeStep({view: 'list'});
+    this.setState({sidebarHide: false, submitData: {}}, () => {
+      for (let [key] of Object.entries({ ...sessionStorage })){
+        if(key.includes('temp_')){
+          sessionStorage.removeItem(key)
+        }
+      }
+    });
+  };
+
+  reloadProfile = async() => {
+        this.onCancel();
+        this.setState({sidebarHide: true});
+   };
+
+  onSave = async() => {
+    this.saveSubmit('SAVE');
+  };
+
+  onSubmit = async() => {
+      this.saveSubmit('SUBMIT');
+  };
+
+  saveSubmit(method) {
+      let submitData = Object.assign({}, this.state.submitData),
+          compositeProfile = Object.assign({}, submitData.compositeProfile),
+          legalAgreement = Object.assign({}, compositeProfile.legalAgreement),
+          linkedProfiles = Object.assign({}, compositeProfile.linkedProfiles),
+          disputeProfiles = Object.assign([], linkedProfiles.disputeProfiles),
+          disputeProfile = Object.assign({}, linkedProfiles.disputeProfile),
+          attributes = Object.assign({}, legalAgreement.attributes),
+          validationResult = validateInputData(this.props.appState.lob.toUpperCase(), submitData, this.props.userInfo);
+
+      if(validationResult.errorMessage.length > 0){
+          let errorMessages = validationResult.errorMessage.map((myList)=>{
+                  return <li>{myList}</li>;
+              }),
+              errorMessage = <ul>{errorMessages}</ul> ;
+          MessageBox.error('Validation Result', errorMessage, 600);
+          return;
+      }
+      if(validationResult.infoMessage.length > 0){
+          let infoMessages = validationResult.infoMessage.map((myList)=>{
+                  return <li>{myList}</li>;
+              }),
+              infoMessage = <ul>{infoMessages}</ul> ;
+          MessageBox.alert('Validation Result', infoMessage, 600);
+      }
+
+      if(objectExists(submitData,'compositeProfile.legalAgreement.attributes.calcProducts.value')) {
+          let arr = submitData.compositeProfile.legalAgreement.attributes.calcProducts.value;
+          let marginProducts = null;
+          marginProducts = [];
+          arr.forEach(product => {
+              if(!!product.calculationProduct && product.calculationProduct.length > 0) {
+                  if(product.calculationProduct.indexOf("ALL") !== -1){
+                      dropdownPresets.CALCULATION_PRODUCTS.forEach(calcProduct => {
+                          if(calcProduct !== "ALL"){
+                              const marginProduct = {};
+                              marginProduct.marginProduct = {"value":calcProduct,"valueCode":calcProduct};
+                              marginProduct.calculationMethod = product.calculationMethod;
+                              marginProducts.push(marginProduct);
+                          }
+                      })
+                  }else {
+                      product.calculationProduct.forEach(p => {
+                          const marginProduct = {};
+                          marginProduct.marginProduct = {"value":p,"valueCode":p};
+                          marginProduct.calculationMethod = product.calculationMethod;
+                          marginProducts.push(marginProduct);
+                      })
+                  }
+
+              }
+          });
+          attributes.marginProducts= {"source": "USER", "value": marginProducts};
+          legalAgreement.attributes =  attributes;
+          /*compositeProfile.legalAgreement =  legalAgreement;
+          submitData.compositeProfile= compositeProfile;*/
+      }
+
+      if(this.props.appState.lob.toUpperCase() === DCM.toUpperCase()){
+          if(objectExists(submitData,'compositeProfile.legalAgreement.attributes.clearedMarginOversightEnabled')){
+              if (attributes.clearedMarginOversightEnabled.value === 'X') {
+                  attributes.clearedMarginOversightEnabled.value = null;
+              }
+          }
+          legalAgreement.attributes =  attributes;
+      }
+
+      if(disputeProfile && !(Object.keys(disputeProfile).length === 0)){
+          disputeProfile.updatedBy = this.props.userInfo && this.props.userInfo.userDetails && this.props.userInfo.userDetails.principalId;
+          disputeProfile.lineOfBusiness = this.props.appState.lob.toUpperCase();
+         // disputeProfile.profileType="DISPUTE";
+          if(disputeProfiles.length > 0){
+              disputeProfiles[0] = disputeProfile;
+          }else{
+              disputeProfiles.push(disputeProfile);
+          }
+          linkedProfiles.disputeProfiles =  disputeProfiles;
+          compositeProfile.linkedProfiles =  linkedProfiles;
+      }
+      legalAgreement.updatedBy = this.props.userInfo && this.props.userInfo.userDetails && this.props.userInfo.userDetails.principalId;
+
+      if([TBA, TCP, PRINCIPAL_DERIVATIVE, FI_REPO].includes(this.props.appState.lob.toLowerCase())) {
+          attributes.statementPassword = attributes.password;
+          legalAgreement.attributes = attributes;
+      }
+
+      if(CLIENT_VALUATION === this.props.appState.lob.toLowerCase()) {
+          attributes = submitData.cvCompositeProfile.cvProfile.attributes;
+          attributes.statementPassword= attributes.password;
+          submitData.cvCompositeProfile.cvProfile.attributes = attributes
+      }
+
+      compositeProfile.legalAgreement =  legalAgreement;
+      submitData.compositeProfile= compositeProfile;
+
+      debounce.add(null, async () => {
+          if(method ===  'SAVE') {
+              await this.props.actions.onSave({
+                  state: this.props[reducerkey],
+                  payload: CLIENT_VALUATION.toUpperCase() === this.props.appState.lob.toUpperCase() ? submitData.cvCompositeProfile : submitData.compositeProfile,
+                  step: {view: 'form', subview: this.state.formTab[0].id, readonly: false},
+                  lob: this.props.appState.lob.toUpperCase()
+              }, this.reloadProfile);
+          }else if(method ===  'SUBMIT'){
+              await this.props.actions.onSubmit({
+                  state: this.props[reducerkey],
+                  payload: CLIENT_VALUATION.toUpperCase() === this.props.appState.lob.toUpperCase() ? submitData.cvCompositeProfile : submitData.compositeProfile,
+                  step: {view: 'form', subview: this.state.formTab[0].id, readonly: false},
+                  lob: this.props.appState.lob.toUpperCase()
+              }, this.reloadProfile);
+          }
+      },100);
+  }
+
+  onTerminate = async() => {
+      await this.props.actions.onTerminate({
+          state: this.props[reducerkey],
+          payload: this.state.submitData.compositeProfile,
+          step: {view: 'form', subview: this.state.formTab[0].id, readonly: false},
+          lob: this.props.appState.lob.toUpperCase()
+      });
+  }
+
+  onCvTerminate = async() => {
+      await this.props.actions.onCvTerminate({
+            state: this.props[reducerkey],
+            payload: this.state.submitData.cvCompositeProfile,
+            step: {view: 'form', subview: this.state.formTab[0].id, readonly: false},
+            lob: this.props.appState.lob.toUpperCase()
+        });
+    }
+
+  onActivate = async() => {
+      let submitData = Object.assign({}, this.state.submitData),
+          validationResult = validateInputData(this.props.appState.lob.toUpperCase(), submitData, this.props.userInfo);
+
+      if(validationResult.infoMessage.length > 0){
+          let infoMessages = validationResult.infoMessage.map((myList)=>{
+                  return <li>{myList}</li>;
+              }),
+              infoMessage = <ul>{infoMessages}</ul> ;
+          MessageBox.alert('Validation Result', infoMessage, 600);
+      }
+      await this.props.actions.onActivate({
+          state: this.props[reducerkey],
+          payload: this.state.submitData.compositeProfile,
+          step: {view: 'form', subview: this.state.formTab[0].id, readonly: false},
+          lob: this.props.appState.lob.toUpperCase()
+      });
+  }
+
+  formatCompositeProfileData(compositeProfile) {
+      const compositeProfileData = JSON.parse(JSON.stringify(compositeProfile));
+      if (compositeProfileData.legalAgreement && compositeProfileData.legalAgreement.attributes && compositeProfileData.legalAgreement.attributes.callFrequencies) {
+          const tempCallFreqData = compositeProfileData.legalAgreement.attributes.callFrequencies.value;
+          const callFreqDataFormatted = [];
+          tempCallFreqData.forEach(item => {
+              const tempObj = {};
+              Object.keys(item).forEach(attr => {
+                  if (item[attr]) {
+                      tempObj[attr] = item[attr];
+                  }
+              });
+              callFreqDataFormatted.push(tempObj);
+          });
+          compositeProfileData.legalAgreement.attributes.callFrequencies.value = callFreqDataFormatted;
+      }
+
+      return compositeProfileData;
+  }
+
+  toggleError (forceState = null, message = null) {
+    this.setState({
+      error: {
+        show: forceState !== null ? forceState : !this.state.showError,
+        message
+      }
+    });
+  };
+
+  toggleSearchProgress (state = null) {
+    let {search} = this.state;
+    search.spinner = !!state ? state : !search.spinner;
+    this.props[reducerkey].spinner = search.spinner;
+    this.setState({search});
+  };
+
+  getProfileDetails = async(obj, handleDetailsRes) => {
+        await this.props.actions.getPreferredAccounts({
+            state: this.props[reducerkey],
+            profileId: obj.profileId,
+            status: obj.status,
+            lob: this.props.appState.lob.toUpperCase()
+        }, handleDetailsRes);
+    };
+
+  onFormUpdate = async(data) => {
+    mixinOnFormUpdate({data, reducerkey, _this: this, sourceId : this.props.userInfo && this.props.userInfo.userDetails && this.props.userInfo.userDetails.principalId})
+  };
+
+  onCustFormUpdate = async(data,topLevelCopyAttributes=[]) => {
+        //topLevelCopyAttributes are attributes for which top level copy is required eg. transferTimeCurrencies
+        mixinOnUpdate({data, reducerkey, _this: this,topLevelCopyAttributes})
+    };
+
+  onTableUpdate = async(props) => {
+    mixinOnTableUpdate({...props, reducerkey, _this: this, sourceId : this.props.userInfo && this.props.userInfo.userDetails && this.props.userInfo.userDetails.principalId})
+  };
+
+  checkGlobalConditions = (renderIf = null) => {
+    return mixinCheckGlobalConditions({renderIf, _this: this})
+  };
+
+  isDerivativeAgreementSetup = (props) => {
+        let calculationType = '';
+        if(objectExists(props,'data.compositeProfile.legalAgreement.attributes.calculationType.value')) {
+            calculationType = props.data.compositeProfile.legalAgreement.attributes.calculationType.value;
+        }
+        return calculationType === 'DERIVATIVES';
+    }
+
+  isClearedAgreementSetup = (props) => {
+        let calculationType = '';
+        if(objectExists(props,'data.compositeProfile.legalAgreement.attributes.calculationType.value')) {
+            calculationType = props.data.compositeProfile.legalAgreement.attributes.calculationType.value;
+        }
+        return calculationType === 'CLEARED_ACCOUNT';
+    }
+
+  isNonClearedNonBilateralAgreementSetup = (props) => {
+        let calculationType = '';
+        let bilateralFlag = '';
+        if(objectExists(props,'data.compositeProfile.legalAgreement.attributes.calculationType.value')) {
+            calculationType = props.data.compositeProfile.legalAgreement.attributes.calculationType.value;
+        }
+        if(objectExists(props,'data.compositeProfile.legalAgreement.attributes.bilateralFlag.value')) {
+            bilateralFlag = props.data.compositeProfile.legalAgreement.attributes.bilateralFlag.value;
+        }
+        return (calculationType === 'DERIVATIVES' && bilateralFlag === 'NO');
+    }
+
+  getAgreementCalcType() {
+        if(objectExists(this.props[reducerkey],'entryData.compositeProfile.legalAgreement.attributes.calculationType.value')) {
+            return this.props[reducerkey].entryData.compositeProfile.legalAgreement.attributes.calculationType.value;
+        } else  {
+            return null;
+        }
+    }
+
+  isExistingAgreement() {
+        return objectExists(this.props[reducerkey],'entryData.compositeProfile.legalAgreement.version') &&
+            this.props[reducerkey].entryData.compositeProfile.legalAgreement.version > 0;
+    };
+
+  renderOnTab = (formTab, subview) => {
+    const { changeContent } = this;
+    return <Tabs
+      position="static"
+      defaultValue={formTab.find(x => x.id === subview).name || null}
+      onChange={changeContent}
+      onDeselect={() => {}}
+      tabs={formTab.filter(x => x.enabled).map(x => {return x.name})}
+      style={{fontSize: '12px', fontFamily:'jpmuitk-sans'}}
+    />
+  };
+  renderEle (){
+    const {bindedEvents, checkGlobalConditions, onGridReady, changeContent, onFormUpdate, onTableUpdate, onSelect, onCancel, onSave, onSubmit, onTerminate, onCvTerminate, onActivate, toggleError, onCustFormUpdate, getProfileDetails, isDerivativeAgreementSetup, isClearedAgreementSetup,isNonClearedNonBilateralAgreementSetup} = this;
+    const {submitData, formTab, config, error} = this.state;
+    const {appState} =  this.props;
+    const {spinner, entryData = {}, coltAuditHistory , coltData = {}, staticData ={}} = this.props[reducerkey];
+    const {view, subview} = this.props[reducerkey].step;
+    let title="";
+    if(this.props.profile && this.props.profile.error){
+           title = this.props.profile.error.successInfo?this.props.profile.error.successInfo : "Error Message";
+    }
+    return (
+      <div style={{width: '100%', position: "relative"}}>
+
+        {spinner ? (
+          <div className='spinner-container'>
+            <Spinner />
+          </div>
+        ) : null}
+
+        {/* loop through json config layout */}
+        {config.layout.map((x, i) => {
+          const {refKey, header, type, viewType, data, columnDefs, renderIf, rowClassRules} = x
+          return view === 'list' && checkGlobalConditions(renderIf) ? (
+            <div className='dt-container' key={i}>
+              {!!header ? (
+                <Header {...header} bindedEvents={bindedEvents} permissions={this.state.permissions}/>
+              ) : null}
+
+              {!!type && type === 'form' ? (
+                <FormBuilder data={data} onFormUpdate={() => {}} permissions={this.state.permissions}/>
+              ) : null}
+
+              {!!type && type === 'datatable' && !viewType ? (
+                <DataGrid
+                  suppressRowClickSelection={true}
+                  containerProps={{style: {height: window.innerHeight - 130}}}
+                  rowStripes
+                  columnDefs={columnDefs}
+                  rowData={!!this.props[reducerkey][refKey] && this.props[reducerkey][refKey].filter ? this.props[reducerkey][refKey].filter(x => !x.filtered) : []}
+                  onCellClicked={e => {this.onCellClicked(e)}}
+                  onGridReady={(e) => {onGridReady({e, refKey})}} />
+              ) : null}
+
+                {!!type && type === 'datatable' && viewType && viewType === 'hierarchicalTable' ? (
+                    <HierarchicalGrid
+                        columnDefs={columnDefs}
+                        reducerkey={reducerkey}
+                        detailColDefs={config.detailColumnDefs}
+                        refKey={refKey}
+                        rowData={!!this.props[reducerkey][refKey] && this.props[reducerkey][refKey].filter ? this.props[reducerkey][refKey].filter(x => !x.filtered) : []}
+                        onCellClicked={e => {this.onCellClicked(e, viewType)}}
+                        onRowSelected={this.props.onRowSelected}
+                        rowClassRules={rowClassRules}
+                        getDetailsData={getProfileDetails}
+                        enableDetailDataFromApi={true}
+                        appState={this.props.appState}
+                        permissions={this.state.permissions}
+                        height={window.innerHeight - 130}
+                    />
+                ) : null}
+            </div>
+          ) : null
+        })}
+        {view === 'form' && appState.lob.toUpperCase() === 'DCM' ? (
+          <Fragment>
+            {this.renderOnTab(formTab, subview)}
+            {subview === 'agreementParameters' ? (
+              <div style={{width: '100%'}}>
+                <AgreementParameters userInfo={this.props.userInfo} onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onCustFormUpdate={onCustFormUpdate} onTerminate={onTerminate} onActivate={onActivate} isDerivativeAgreementSetup={isDerivativeAgreementSetup} isClearedAgreementSetup={isClearedAgreementSetup} staticData={staticData}/>
+              </div>
+            ) : null}
+
+            {subview === 'accounts' ? (
+              <Accounts onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo} isDerivativeAgreementSetup={isDerivativeAgreementSetup} isClearedAgreementSetup={isClearedAgreementSetup} staticData={staticData}/>
+            ) : null}
+
+            {subview === 'preferences' ? (
+              <Preferences onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo} isDerivativeAgreementSetup={isDerivativeAgreementSetup} isClearedAgreementSetup={isClearedAgreementSetup} isNonClearedNonBilateralAgreementSetup={isNonClearedNonBilateralAgreementSetup}  staticData={staticData}/>
+            ) : null}
+
+            {subview === 'statements' ? (
+              <Statements onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} userInfo={this.props.userInfo} isDerivativeAgreementSetup={isDerivativeAgreementSetup} isClearedAgreementSetup={isClearedAgreementSetup}/>
+            ) : null}
+
+            {subview === 'ssiSetup' ? (
+              <SSIStatement onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} userInfo={this.props.userInfo}/>
+            ) : null}
+
+            {subview === 'tradeSetup' ? (
+              <TradeSetup onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} userInfo={this.props.userInfo} isDerivativeAgreementSetup={isDerivativeAgreementSetup}/>
+            ) : null}
+
+          </Fragment>
+        ) : null}
+          {view === 'form' && appState.lob === PRINCIPAL_DERIVATIVE ? (
+              <Fragment>
+                {this.renderOnTab(formTab, subview)}
+                  {subview === 'ibAgreementParameters' ? (
+                      <div style={{width: '100%'}}>
+                          <IBAgreementParameters viewId={subview} userInfo={this.props.userInfo} onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onCustFormUpdate={onCustFormUpdate} onActivate={onActivate} staticData={staticData}/>
+                      </div>
+                  ) : null}
+
+                  {subview === 'csaLegalData' ? (
+                      <CsaLegalData viewId={subview} userInfo={this.props.userInfo} onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} staticData={staticData}/>
+                  ) : null}
+
+                  {subview === 'isdaLegalData' ? (
+                      <IsdaLegalData viewId={subview} userInfo={this.props.userInfo} onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onActivate={onActivate}/>
+                  ) : null}
+                  {subview === 'additionalAttributes' ? (
+                      <AdditionalAttributes viewId={subview} userInfo={this.props.userInfo} onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onActivate={onActivate}/>
+                  ) : null}
+                  {subview === 'ibColtDetails' ? (
+                      <IBColtDetails viewId={subview} userInfo={this.props.userInfo} onCancel={onCancel} onTableUpdate={onTableUpdate} data={entryData} coltData={coltData} coltAuditHistory={coltAuditHistory} staticData={staticData}/>
+                  ) : null}
+                  {subview === 'ibStatements' ? (
+                      <IBStatements viewId={subview} onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onActivate={onActivate} userInfo={this.props.userInfo} staticData={staticData}/>
+                  ) : null}
+                  {subview === 'ibAccounts' ? (
+                      <IBAccounts onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo} staticData={staticData}/>
+                  ) : null}
+                  {subview === 'ibSsiSetup' ? (
+                      <IBSSISetup onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} userInfo={this.props.userInfo} staticData={staticData} />
+                  ) : null}
+                  {subview === 'ibDisputes' ? (
+                      <IBDisputes onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} onCustFormUpdate={onCustFormUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} userInfo={this.props.userInfo} staticData={staticData}/>
+                  ) : null}
+              </Fragment>
+          ) : null}
+          {view === 'form' && appState.lob === TCP ? (
+              <Fragment>
+                {this.renderOnTab(formTab, subview)}
+                  {subview === 'tcpAgreementParameters' ? (
+                      <div style={{width: '100%'}}>
+                          <TCPAgreementParameters viewId={subview} userInfo={this.props.userInfo} onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onTerminate={onTerminate} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onCustFormUpdate={onCustFormUpdate} onActivate={onActivate} staticData={staticData} />
+                      </div>
+                  ) : null}
+                 {subview === 'tcpStatements' ? (
+                      <TCPStatements viewId={subview} onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onActivate={onActivate} userInfo={this.props.userInfo} staticData={staticData} />
+                  ) : null}
+                  {subview === 'tcpAccounts' ? (
+                      <TCPAccounts onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo} staticData={staticData} />
+                  ) : null}
+                  {subview === 'tcpSsiSetup' ? (
+                      <TCPSSISetup onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} userInfo={this.props.userInfo} staticData={staticData} />
+                  ) : null}
+                  {subview === 'tcpCommitment' ? (
+                      <TCPCommitment onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo} staticData={staticData} />
+                  ) : null}
+              </Fragment>
+          ) : null}
+          {view === 'form' && appState.lob === TBA ? (
+              <Fragment>
+                  {this.renderOnTab(formTab, subview)}
+                  {subview === 'tbaLegalTerms' ? (
+                      <div style={{width: '100%'}}>
+                          <TBALegalTerms onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onCustFormUpdate={onCustFormUpdate} onTerminate={onTerminate} onActivate={onActivate} userInfo={this.props.userInfo} staticData={staticData}/>
+                      </div>
+                  ) : null}
+                  {subview === 'tbaAccounts' ? (
+                      <TBAAccounts onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo}/>
+                  ) : null}
+                  {subview === 'tbaStatements' ? (
+                      <TBAStatements onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo}/>
+                  ) : null}
+                  {subview === 'tbaHistory' ? (
+                      <TBAHistory onCancel={onCancel} data={entryData} userInfo={this.props.userInfo}/>
+                  ) : null}
+                  {subview === 'tbaNettingGroup' ? (
+                      <TBANettingGroup onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo}/>
+                  ) : null}
+                  {subview === 'tbaPreferences' ? (
+                      <TBAPreferences onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo}/>
+                  ) : null}
+                  {subview === 'tbaDisputes' ? (
+                      <TBADisputes onCancel={onCancel} onSave={onSave} onSubmit={onSubmit}
+                                   onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate}
+                                   onCustFormUpdate={onCustFormUpdate} data={entryData} onTerminate={onTerminate}
+                                   onActivate={onActivate} userInfo={this.props.userInfo} staticData={staticData}/>
+                  ) : null}
+              </Fragment>
+          ) : null}
+          {view === 'form' && (appState.lob === REPO || appState.lob === FI_REPO) ? (
+              <Fragment>
+                {this.renderOnTab(formTab, subview)}
+                  {subview === 'repoAgreementParameters' ? (
+                      <div style={{width: '100%'}}>
+                          <REPOAgreementParameters onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onCustFormUpdate={onCustFormUpdate} onTerminate={onTerminate} onActivate={onActivate} userInfo={this.props.userInfo} staticData={staticData}/>
+                      </div>
+                  ) : null}
+                  {subview === 'repoAccounts' ? (
+                      <REPOAccounts onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo}/>
+                  ) : null}
+                  {subview === 'repoStatements' ? (
+                      <REPOStatements onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo}/>
+                  ) : null}
+                  {subview === 'repoHistory' ? (
+                      <REPOHistory onCancel={onCancel} data={entryData} />
+                  ) : null}
+                  {subview === 'repoNettingGroup' ? (
+                      <REPONettingGroup onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo}/>
+                  ) : null}
+                  {subview === 'repoCounterPartyGroup' ? (
+                      <REPOcounterPartyGroup onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onTerminate={onTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo}/>
+                  ) : null}
+              </Fragment>
+          ) : null}
+          {view === 'form' && (appState.lob === CLIENT_VALUATION) ? (
+              <Fragment>
+                {this.renderOnTab(formTab, subview)}
+                  {subview === 'details' ? (
+                      <div style={{width: '100%'}}>
+                          <CVDetails onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onCustFormUpdate={onCustFormUpdate} onCvTerminate={onCvTerminate} onActivate={onActivate} userInfo={this.props.userInfo} staticData={staticData}/>
+                      </div>
+                  ) : null}
+                  {subview === 'statements' ? (
+                      <CVStatements onCancel={onCancel} onSave={onSave}  onSubmit={onSubmit} onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData} onCvTerminate={onCvTerminate} onActivate={onActivate} onCustFormUpdate={onCustFormUpdate} userInfo={this.props.userInfo}/>
+                  ) : null}
+                  {subview === 'history' ? (
+                      <CVHistory onCancel={onCancel} data={entryData} userInfo={this.props.userInfo}/>
+                  ) : null}
+              </Fragment>
+          ) : null}
+        { view === 'form' && (appState.lob === XMARGIN) &&
+          <Fragment>
+            {this.renderOnTab(formTab, subview)}
+            {subview === 'xmProfileParameters' && <div style={{width: '100%'}}>
+            <XMProileParameters  userInfo={this.props.userInfo} onCancel={onCancel}  onSave={onSave}    onSubmit={onSubmit}  onFormUpdate={onFormUpdate} onTableUpdate={onTableUpdate} data={entryData}     onCustFormUpdate={onCustFormUpdate}  onTerminate={onTerminate} onActivate={onActivate} staticData={staticData} appState={appState} />
+            </div>}
+            {subview === 'xmMarginEntity' && <div style={{width: '100%'}}>{'APPLICATION INFO xmMarginEntity'} </div>}
+            {subview === 'xmProduct' && <div style={{width: '100%'}}>{'APPLICATION INFO xmProduct'} </div>}
+            {subview === 'xmStatement' && <div style={{width: '100%'}}>{'APPLICATION INFO xmStatement'} </div>}
+          </Fragment>}
+      </div>
+    )
+  };
+
+  render() {
+    const {renderEle, onSearch, resetFilter} = this;
+    const {config, search, sidebarHide = false} = this.state;
+
+    return !!config ? (
+      <Layout sidebar={"sidebar" in config ? config.sidebar : null}
+              sidebarProgress={search.spinner}
+              sidebarHide={sidebarHide}
+              main={renderEle()}
+              onSearch={onSearch}
+              resetFilter={resetFilter}/>
+    ) : null;
+  };
+}
+
+const mapStateToProps = state => {
+  let {appState} = state;
+  return {
+    appState,
+    [reducerkey]: state[reducerkey]
+  }
+};
+
+const mapDispatchToProps = dispatch => {
+  return {
+    actions: bindActionCreators(actions, dispatch),
+    appStateAction: bindActionCreators(appStateAction, dispatch)
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(_Component);
+
+
+abcd
