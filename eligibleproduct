@@ -1,0 +1,63 @@
+import React, {Component, Fragment} from 'react';
+import {ColumnLayout, Checkbox} from '@jpmuitk/components';
+import {dropdownPresets} from '../../../config/dropdownPresets';
+
+class EligibleProducts extends Component {
+    constructor(props){
+        super(props);
+    }
+    handleChange = (product, event) => {
+        if(event){
+            let formData = Object.assign({}, this.props.formData),
+                compositeProfile = Object.assign({}, formData.compositeProfile),
+                legalAgreement = Object.assign({}, compositeProfile.legalAgreement),
+                attributes = Object.assign({}, legalAgreement.attributes),
+                eligibleProducts = Object.assign({}, attributes.eligibleProducts),
+                value = Object.assign([], eligibleProducts.value);
+            if(event.target.checked){
+                value.push(product);
+            }else {
+                let index = value.indexOf(product);
+                value.splice(index, 1);
+            }
+            eligibleProducts.value = value;
+            attributes.eligibleProducts = eligibleProducts;
+            legalAgreement.attributes = attributes;
+            compositeProfile.legalAgreement = legalAgreement;
+            formData.compositeProfile = compositeProfile;
+
+            this.props.onCustFormUpdate(formData);
+        }
+    };
+
+    render() {
+        const {bind, refKey, formData} = this.props;
+        let obj = Object.assign({}, this.props.formData),
+            compositeProfile = Object.assign({}, obj.compositeProfile),
+            legalAgreement = Object.assign({}, compositeProfile.legalAgreement),
+            attributes = Object.assign({}, legalAgreement.attributes),
+            eligibleProducts = Object.assign({}, attributes.eligibleProducts),
+            value = Object.assign([], eligibleProducts.value);
+        return (
+            <Fragment>
+                <div width="100%">
+                    <ColumnLayout container item sm={12} md={12} lg={12} direction={'row'} spacing={24}
+                                  style={{marginTop:'1px',marginBottom:'4px',marginLeft:'4px', fontSize: '12px'}}>
+                        {dropdownPresets.ELIGIBLE_PRODUCTS.map((product, index) => (
+                            <ColumnLayout item sm={1} md={1} lg={1} key={index}>
+                                    <Checkbox
+                                        label={product}
+                                        checked={value.indexOf(product) != -1}
+                                        onChange={this.handleChange.bind(this,product)}/>
+                            </ColumnLayout>
+                        ))}
+                    </ColumnLayout>
+                </div>
+
+            </Fragment>
+        );
+    }
+}
+export default EligibleProducts;
+
+abcd123
