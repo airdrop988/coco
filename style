@@ -1,0 +1,131 @@
+.formbuilder-container{
+    width: 100%;
+    display: flex;
+}
+
+.formbuilder-column{
+    flex: 1 1 auto;
+    width: 50%;
+}
+
+.formbuilder-item-container{
+    display: flex;
+    flex: 1 1 auto;
+    transform: translateY(1px);
+    font-size: 12px;
+    text-align: left;
+
+    &.dark{
+        border-bottom: 1px solid #74777F;
+    }
+
+    &.light{
+        border-bottom: 1px solid #D9DDE3;
+    }
+
+    .readonly-pill{
+        border-radius: 5px;
+        margin-right: 10px;
+        font-size: 7px;
+    }
+
+    .readonly{
+        opacity: 0.5;
+    }
+
+    .invalid{
+        color: red;
+    }
+
+    .astericks{
+        color: red;
+    }
+    .blueastericks{
+        color: blue;
+    }
+
+    .item{
+        display: flex;
+        align-items: center;
+        height: 30px;
+        width: 100%;
+
+        &.item-left{
+            flex-basis: 370px;
+            margin-left: 5px;
+            justify-content: flex-start;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            /*white-space: pre-wrap;
+            height: auto;*/
+        }
+
+        &.item-center{
+            flex-basis: 50px;
+            margin-left: 10px;
+            justify-content: flex-start;
+        }
+
+        &.item-right{
+            flex: 1 1 auto;
+            margin-right: 10px;
+            justify-content: flex-start;
+            display: flex;
+            align-items: center;
+        }
+    }
+
+    input, textarea{
+        border: none;
+        background: none;
+        text-align: left;
+        width: 100%;
+        font-family: OpenSans-Regular!important;
+        font-size: 12px;
+
+        &.dark{
+            color: white;
+        }
+
+        &.light{
+            color: #2A2C2F;
+        }
+
+        &[type="number"]::-webkit-outer-spin-button, &[type="number"]::-webkit-inner-spin-button{
+            margin-left: 10px;
+        }
+    }
+
+    textarea{
+        padding: 0 10px;
+        width: 90%;
+        transform: translateX(-10px);
+        scrollbar-width: thin;
+        overflow-x: hidden;
+        resize: vertical;
+        font-family: inherit;
+        height: 10px;
+    }
+
+    button{
+        font-family: OpenSans-Regular;
+        font-size: 12px;
+
+        &.dark{
+            color: white;
+        }
+
+        &.light{
+            color: #2A2C2F;
+        }
+
+        span{
+            text-align: left;
+            font-family: OpenSans-Regular;
+            font-size: 12px;
+        }
+    }
+}
+
+mnop987
