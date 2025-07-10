@@ -37,8 +37,6 @@ class XMProfileFields extends Component {
     constructor(props) {
         super(props);
 
-        this.gridApiRefs = {};
-
         this.state = {
             permissions: {
                 readonly: this.getPermission(props),
@@ -47,8 +45,7 @@ class XMProfileFields extends Component {
             toggleState: true,
             ready: true,
             selectedRows: [],
-            masterAgreements: [],
-            hasLocalChanges: false, // Track if we have unsaved changes
+            gridApi: {}, // Store grid APIs like DCM
             modal: {
                 disabled: null,
                 show: false,
@@ -106,7 +103,6 @@ class XMProfileFields extends Component {
                     title: "Submit",
                     onclick: this.handleSubmit,
                     displayIf: this.isProfileNewOrActive.bind(this),
-                    // disabled: () => !this.validateRequiredFields()
                 },
                 {
                     title: "Deactivate",
@@ -120,37 +116,6 @@ class XMProfileFields extends Component {
                 },
             ];
     }
-
-    // Helper method to get current master agreements (prioritizing local state)
-    getCurrentMasterAgreements = () => {
-        return this.state.masterAgreements || [];
-    };
-
-    // Helper method to update master agreements in both state and parent data
-    updateMasterAgreements = (newAgreements, callback = null) => {
-        this.setState({
-            masterAgreements: [...newAgreements],
-            hasLocalChanges: true
-        }, () => {
-            // Update parent form data
-            let formData = cloneObject(this.props.data || {});
-            if (!formData.compositeProfile?.legalAgreement?.attributes) {
-                this.initializeProfileData(formData);
-            }
-            formData.compositeProfile.legalAgreement.attributes.masterAgreements = [...newAgreements];
-
-            if (this.props.onCustFormUpdate) {
-                this.props.onCustFormUpdate(formData);
-            }
-
-            // Update grid
-            if (this.gridApiRefs["masterAgreements"]) {
-                this.gridApiRefs["masterAgreements"].setRowData([...newAgreements]);
-            }
-
-            if (callback) callback();
-        });
-    };
 
     openMasterAgreementModal = (editMode = false) => {
         const data = this.props.data || this.props.profileData || {};
@@ -221,9 +186,14 @@ class XMProfileFields extends Component {
                         }
 
                         let exists = false;
-                        const currentAgreements = this.getCurrentMasterAgreements();
+                        let formData = cloneObject(data);
 
-                        // Check for duplicate agreement IDs
+                        if (!formData.compositeProfile?.legalAgreement?.attributes?.masterAgreements) {
+                            this.initializeProfileData(formData);
+                        }
+
+                        const currentAgreements = formData.compositeProfile.legalAgreement.attributes.masterAgreements;
+
                         if (currentAgreements) {
                             currentAgreements.forEach((item, index) => {
                                 if (item.agreementId === newEntry.agreementId?.value) {
@@ -236,8 +206,6 @@ class XMProfileFields extends Component {
                         }
 
                         if (!exists) {
-                            let updatedAgreements = [...currentAgreements];
-
                             if (isEditMode) {
                                 const updatedAgreement = {
                                     ...editingRowData,
@@ -250,12 +218,12 @@ class XMProfileFields extends Component {
                                     updatedBy: this.props.userInfo?.username || 'system'
                                 };
 
-                                const agreementIndex = updatedAgreements.findIndex(item =>
+                                const agreementIndex = currentAgreements.findIndex(item =>
                                     JSON.stringify(item) === JSON.stringify(editingRowData)
                                 );
 
                                 if (agreementIndex !== -1) {
-                                    updatedAgreements[agreementIndex] = updatedAgreement;
+                                    formData.compositeProfile.legalAgreement.attributes.masterAgreements[agreementIndex] = updatedAgreement;
                                 }
 
                                 MessageBox.alert('Success', 'Master agreement has been updated successfully.', 500);
@@ -272,16 +240,25 @@ class XMProfileFields extends Component {
                                     createdBy: this.props.userInfo?.username || 'system'
                                 };
 
-                                updatedAgreements.push(newAgreement);
+                                formData.compositeProfile.legalAgreement.attributes.masterAgreements.push(newAgreement);
                                 MessageBox.alert('Success', 'Master agreement has been validated and added successfully.', 500);
                             }
 
                             this.toggleModal({ state: false });
 
-                            // Use the helper method to update agreements
-                            this.updateMasterAgreements(updatedAgreements, () => {
-                                this.setState({ resetTable: false, selectedRows: [] });
-                            });
+                            // Update parent data (like DCM pattern)
+                            if (this.props.onCustFormUpdate) {
+                                this.props.onCustFormUpdate(formData);
+                            }
+
+                            // Update grid directly (like DCM pattern)
+                            if (this.state.gridApi["masterAgreements"]) {
+                                this.state.gridApi["masterAgreements"].setRowData(
+                                    formData.compositeProfile.legalAgreement.attributes.masterAgreements
+                                );
+                            }
+
+                            this.setState({ resetTable: false, selectedRows: [] });
                         } else {
                             this.setState({ resetTable: false });
                         }
@@ -363,13 +340,6 @@ class XMProfileFields extends Component {
         try {
             const config = fetchConfig(this.props.appState?.lob || "xm");
             this.setup(config);
-            
-            // Initialize masterAgreements from props
-            const initialAgreements = this.props.data?.compositeProfile?.legalAgreement?.attributes?.masterAgreements || [];
-            this.setState({
-                masterAgreements: [...initialAgreements],
-                hasLocalChanges: false
-            });
         } catch (error) {
             const fallbackConfig = {
                 layout: [
@@ -390,27 +360,8 @@ class XMProfileFields extends Component {
         }
     }
 
-    componentDidUpdate(prevProps) {
-        // Only update from props if we don't have local changes
-        // AND the props data has actually changed
-        if (prevProps.data !== this.props.data && this.props.data && !this.state.hasLocalChanges) {
-            const newMasterAgreements = this.props.data?.compositeProfile?.legalAgreement?.attributes?.masterAgreements || [];
-            
-            // Only update if the new data is different from our current state
-            if (JSON.stringify(newMasterAgreements) !== JSON.stringify(this.state.masterAgreements)) {
-                this.setState({
-                    masterAgreements: [...newMasterAgreements],
-                    hasLocalChanges: false
-                });
-                
-                // Update grid
-                if (this.gridApiRefs["masterAgreements"]) {
-                    this.gridApiRefs["masterAgreements"].setRowData([...newMasterAgreements]);
-                }
-            }
-        }
-    }
-
+    // Remove componentDidUpdate entirely - let grid API handle updates
+    
     setup = (config) => {
         let cloneData = cloneObject(this.props.data || {});
         this.initializeProfileData(cloneData);
@@ -482,24 +433,23 @@ class XMProfileFields extends Component {
         }
     };
 
+    // DCM pattern for onGridReady
     onGridReady = ({ e, refKey }) => {
+        const { gridApi } = this.state;
         const { api } = e;
-        this.gridApiRefs[refKey] = api;
 
-        setTimeout(() => {
-            api.sizeColumnsToFit();
-        }, 100); 
+        gridApi[refKey] = api;
 
-        if (refKey === "masterAgreements") {
-            api.addEventListener('selectionChanged', this.onSelectionChanged);
-            api.addEventListener('cellDoubleClicked', this.onCellDoubleClicked);
-            
-            // Set initial data from state
-            const masterAgreements = this.getCurrentMasterAgreements();
-            if (masterAgreements.length > 0) {
-                api.setRowData([...masterAgreements]);
+        this.setState({ gridApi }, () => {
+            setTimeout(() => {
+                api.sizeColumnsToFit();
+            }, 100);
+
+            if (refKey === "masterAgreements") {
+                api.addEventListener('selectionChanged', this.onSelectionChanged);
+                api.addEventListener('cellDoubleClicked', this.onCellDoubleClicked);
             }
-        }
+        });
     };
 
     onCellDoubleClicked = (event) => {
@@ -512,11 +462,12 @@ class XMProfileFields extends Component {
     };
 
     onSelectionChanged = () => {
-        const selectedNodes = this.gridApiRefs["masterAgreements"]?.getSelectedNodes() || [];
+        const selectedNodes = this.state.gridApi["masterAgreements"]?.getSelectedNodes() || [];
         const selectedRows = selectedNodes.map(node => node.data);
         this.setState({ selectedRows });
     };
 
+    // DCM pattern for deletion
     deleteSelectedRows = () => {
         const { selectedRows } = this.state;
 
@@ -525,17 +476,40 @@ class XMProfileFields extends Component {
             return;
         }
 
-        const currentAgreements = this.getCurrentMasterAgreements();
+        const { data } = this.props;
+        const { gridApi } = this.state;
+        const api = gridApi["masterAgreements"];
+
+        // Clone data and get current agreements
+        let formData = cloneObject(data || {});
+        
+        if (!formData.compositeProfile?.legalAgreement?.attributes?.masterAgreements) {
+            this.initializeProfileData(formData);
+        }
+
+        const currentAgreements = formData.compositeProfile.legalAgreement.attributes.masterAgreements;
+        
+        // Filter out selected rows
         const updatedAgreements = currentAgreements.filter(agreement =>
             !selectedRows.some(selectedRow =>
                 JSON.stringify(agreement) === JSON.stringify(selectedRow)
             )
         );
 
-        // Use the helper method to update agreements
-        this.updateMasterAgreements(updatedAgreements, () => {
-            this.setState({ selectedRows: [] });
-        });
+        // Update the form data
+        formData.compositeProfile.legalAgreement.attributes.masterAgreements = updatedAgreements;
+
+        // Update parent data (like DCM pattern)
+        if (this.props.onCustFormUpdate) {
+            this.props.onCustFormUpdate(formData);
+        }
+
+        // Update grid directly (like DCM pattern)
+        if (api) {
+            api.setRowData(updatedAgreements);
+        }
+
+        this.setState({ selectedRows: [] });
     };
 
     validateEciOnBlur = async () => {
@@ -555,7 +529,6 @@ class XMProfileFields extends Component {
         clone.layout.find(x => x.refKey === 'crossMarginEntities').data.forEach(x => {
             x.column.forEach(form => {
                 if (form.title === fieldTitle && form.value !== undefined) {
-                    // Skip validation if value is blank/null/undefined
                     if (form.value === "" || form.value === null || typeof form.value === "undefined") {
                         return;
                     }
@@ -695,7 +668,7 @@ class XMProfileFields extends Component {
                                                 checkboxSelection: col.field === "lineOfBusiness" ? true : false,
                                                 headerCheckboxSelection: col.field === "lineOfBusiness" ? true : false,
                                             }))}
-                                            rowData={this.getCurrentMasterAgreements()}
+                                            rowData={traverseFormToBindValue({ formData, bind }) || []}
                                             onGridReady={(e) => {
                                                 onGridReady({ e, refKey });
                                             }}
@@ -722,7 +695,7 @@ class XMProfileFields extends Component {
                                                 onFormUpdate={modal.onUpdate}
                                                 isFormValid={isFormValid}
                                                 selectedRowIdx={selectedRowIdx}
-                                                gridApi={this.gridApiRefs}
+                                                gridApi={this.state.gridApi}
                                                 resetFormFields={this.state.resetFormFields}
                                                 permissions={permissions}
                                                 staticData={staticData}
