@@ -1,0 +1,83 @@
+/* App.css */
+.App {
+  min-height: 100vh;
+}
+
+/* Ensure proper spacing for form grids */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  align-items: end;
+}
+
+/* Custom spacing for date inputs */
+.date-input-container {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+
+.date-separator {
+  padding-bottom: 8px;
+  color: var(--salt-content-secondary-foreground);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Loading state for buttons */
+.salt-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Summary section styling */
+.summary-section {
+  background-color: var(--salt-color-gray-05);
+  border-radius: var(--salt-size-border-radius);
+  padding: var(--salt-spacing-200);
+}
+
+/* Filter form card styling */
+.filter-form-card {
+  box-shadow: var(--salt-shadow-1);
+  transition: box-shadow 0.2s ease;
+}
+
+.filter-form-card:hover {
+  box-shadow: var(--salt-shadow-2);
+}
+
+/* Banner styling */
+.results-banner {
+  margin-top: var(--salt-spacing-200);
+}
+
+/* Header section */
+.header-section {
+  border-bottom: 1px solid var(--salt-color-gray-20);
+  margin-bottom: var(--salt-spacing-200);
+}
+
+/* Custom dropdown width constraints */
+.salt-dropdown {
+  min-width: 150px;
+  max-width: 300px;
+}
+
+/* Input field consistency */
+.salt-input {
+  min-width: 120px;
+}
+
+/* Ensure proper text wrapping in dropdowns */
+.salt-option {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
