@@ -1,83 +1,48 @@
-/* App.css */
-.App {
-  min-height: 100vh;
-}
+cd src/main/coll-mgmt-ui/packages/callmanagement
+npm install --save-dev style-loader css-loader
 
-/* Ensure proper spacing for form grids */
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  align-items: end;
-}
 
-/* Custom spacing for date inputs */
-.date-input-container {
-  display: flex;
-  align-items: end;
-  gap: 8px;
-}
 
-.date-separator {
-  padding-bottom: 8px;
-  color: var(--salt-content-secondary-foreground);
-}
+cd src/main/coll-mgmt-ui/packages/callmanagement/src
+grep -r "@salt-ds/theme/index.css" .
+grep -r "salt-ag-theme.css" .
+grep -r "ag-grid.css" .
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-}
 
-/* Loading state for buttons */
-.salt-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+import '@salt-ds/theme';
+import '@salt-ds/ag-grid-theme';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
 
-/* Summary section styling */
-.summary-section {
-  background-color: var(--salt-color-gray-05);
-  border-radius: var(--salt-size-border-radius);
-  padding: var(--salt-spacing-200);
-}
 
-/* Filter form card styling */
-.filter-form-card {
-  box-shadow: var(--salt-shadow-1);
-  transition: box-shadow 0.2s ease;
-}
+# Navigate to callmanagement package
+cd src/main/coll-mgmt-ui/packages/callmanagement
 
-.filter-form-card:hover {
-  box-shadow: var(--salt-shadow-2);
-}
+# Install missing loaders
+npm install --save-dev style-loader css-loader
 
-/* Banner styling */
-.results-banner {
-  margin-top: var(--salt-spacing-200);
-}
+# Install missing packages (if needed)
+npm install @salt-ds/ag-grid-theme ag-grid-community ag-grid-react
 
-/* Header section */
-.header-section {
-  border-bottom: 1px solid var(--salt-color-gray-20);
-  margin-bottom: var(--salt-spacing-200);
-}
+# Clean and reinstall
+rm -rf node_modules package-lock.json
+npm install
 
-/* Custom dropdown width constraints */
-.salt-dropdown {
-  min-width: 150px;
-  max-width: 300px;
-}
 
-/* Input field consistency */
-.salt-input {
-  min-width: 120px;
-}
 
-/* Ensure proper text wrapping in dropdowns */
-.salt-option {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+import '@salt-ds/theme';                     // Correct
+import '@salt-ds/ag-grid-theme';            // Correct
+import '@salt-ds/icons';                    // Correct
+import 'ag-grid-community/styles/ag-theme-alpine.css';  // Added theme
+
+
+cd src/main/coll-mgmt-ui/packages/callmanagement
+
+# Install missing dev dependencies
+npm install --save-dev style-loader css-loader
+
+# Make sure all packages are installed
+npm install
+
+# Start the micro frontend
+npm run start:mf
