@@ -1,353 +1,96 @@
-import React, { useState } from 'react';
-import {
-  SaltProvider,
-  Button,
-  Card,
-  FlexLayout,
-  StackLayout,
-  Text,
-  Input,
-  FormField,
-  FormFieldLabel,
-  Dropdown,
-  Option,
-  Banner,
-} from '@salt-ds/core';
-import {
-  CalendarIcon,
-  FilterIcon,
-} from '@salt-ds/icons';
-import '@salt-ds/theme/index.css';
-import './App.css';
+OneMargin Collateral Management UI
+Overview
+OneMargin Collateral Management UI is a Micro Frontend (MFE) application built with React and Webpack Module Federation. It provides a modular frontend architecture for managing various aspects of the Collateral management system, including dashboard views, call management, and movements tracking.
 
-const FinancialFilterForm = () => {
-  const [formData, setFormData] = useState({
-    region: 'AMERICA',
-    csr: 'All',
-    legalEntity: 'All',
-    counterparty: 'All',
-    cobFrom: '10-Oct-2022',
-    cobTo: '11-Oct-2022',
-    product: 'DERIVATIVES'
-  });
+Architecture
+Micro Frontend Approach
+The application follows a Micro Frontend architecture where each feature is developed as an independent React application that can be:
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState(null);
+Developed independently
+Deployed independently
+Composed together at runtime
+Key Components
+Common: Acts as the shell application that consumes and orchestrates other micro frontends
+Dashboard: Provides analytics and overview visualizations
+Call Management: Handles call-related workflows and interfaces
+Movements: Manages fund movement operations and tracking
+Technical Stack
+React: v19.1.1
+Webpack: v5.88.0 with Module Federation
+Maven: For building and packaging the application
+Spring Boot: Backend framework serving the application
+Development Setup
+Prerequisites
+Node.js (v20+)
+npm (v10+)
+Java 21
+Maven
+Getting Started
+Clone the repository
+Install dependencies:
+cd src/main/coll-mgmt-ui
+npm run install-all
+Start development servers:
+npm run start-mfe
+This will start all micro frontends:
 
-  const regionOptions = ['AMERICA', 'EUROPE', 'INDIA', 'JANSA', 'SAMERICA', 'SAUDI'];
-  
-  const csrOptions = [
-    'All',
-    'AAMINAIZ, RAHAMAN',
-    'ASYA REVA',
-    'GURPANU BUYAK',
-    'JESSICAGAIL BURNS',
-    'JOHANNA PAOLA VELOZ',
-    'JOSEPH HARBAUGH',
-    'JOSHUAADAM MOSKEY',
-    'KATE',
-    'KEVIN LIN',
-    'KIMBERLY WALDMAN',
-    'KRISTERJANUS MCCONNELL',
-    'LORENZGICHARES RUSSOMANNO'
-  ];
+Common: http://localhost:3000
+Dashboard: http://localhost:3001
+Call Management: http://localhost:3002
+Development Workflow
+Each package can be developed independently:
 
-  const legalEntityOptions = [
-    'All',
-    'CHASE BANK (0008678900)',
-    'J.P. MORGAN SECURITIES LLC (0006868700)'
-  ];
+# Start only the dashboard
+cd packages/dashboard
+npm run start:mf
 
-  const counterpartyOptions = [
-    'All',
-    'CHASE BANK (0008678900)',
-    'J.P. MORGAN SECURITIES LLC (0006868700)'
-  ];
+# Start only the call management
+cd packages/callmanagement
+npm run start:mf
 
-  const productOptions = ['DERIVATIVES', 'EQUITIES', 'FIXED INCOME', 'COMMODITIES'];
+# Start only the common shell
+cd packages/common
+npm run start:mf
+Build Process
+Local Build
+To build all packages:
 
-  const handleDropdownChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+npm run build-mfe
+For individual packages:
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+cd packages/[package-name]
+npm run build
+Maven Build
+The project includes Maven profiles to streamline the build process:
 
-  const constructPayload = () => {
-    const payload = {
-      filters: [
-        {
-          property: "region",
-          operation: "EQUALS",
-          value: formData.region,
-          propertyType: "STRING"
-        },
-        {
-          property: "csr", 
-          operation: "EQUALS",
-          value: formData.csr === "All" ? null : formData.csr,
-          propertyType: "STRING"
-        },
-        {
-          property: "legalEntity",
-          operation: "EQUALS", 
-          value: formData.legalEntity === "All" ? null : formData.legalEntity,
-          propertyType: "STRING"
-        },
-        {
-          property: "counterparty",
-          operation: "EQUALS",
-          value: formData.counterparty === "All" ? null : formData.counterparty, 
-          propertyType: "STRING"
-        },
-        {
-          property: "cob",
-          operation: "GREATER_THAN_EQUALS",
-          value: formData.cobFrom,
-          propertyType: "DATE"
-        },
-        {
-          property: "cob", 
-          operation: "LESS_THAN_EQUALS",
-          value: formData.cobTo,
-          propertyType: "DATE"
-        },
-        {
-          property: "product",
-          operation: "EQUALS",
-          value: formData.product,
-          propertyType: "STRING"
-        }
-      ].filter(filter => filter.value !== null),
-      requestPayload: {
-        searchCriteria: {
-          region: formData.region,
-          csr: formData.csr === "All" ? "" : formData.csr,
-          legalEntity: formData.legalEntity === "All" ? "" : formData.legalEntity,
-          counterparty: formData.counterparty === "All" ? "" : formData.counterparty,
-          cobFrom: formData.cobFrom,
-          cobTo: formData.cobTo,
-          product: formData.product
-        }
-      }
-    };
-    
-    return payload;
-  };
+# Build all packages
+mvn clean package -P all
 
-  const handleApplyFilters = async () => {
-    setIsLoading(true);
-    const payload = constructPayload();
-    console.log('Request Payload:', JSON.stringify(payload, null, 2));
-    
-    try {
-      const response = await fetch('http://localhost:3443/classic/test/resources/data/calc/margin/systemStatementStatusDataJoinApiJson_gtc=1793186534629', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Search results:', result);
-        setResults(`Search completed successfully. Found ${result.data?.length || 0} results.`);
-      } else {
-        console.error('Search failed:', response.statusText);
-        setResults(`Search failed: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Network error:', error);
-      setResults(`Network error: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+# Build only specific packages
+mvn clean package -P dashboard,callmanagement
 
-  const handleReset = () => {
-    setFormData({
-      region: 'AMERICA',
-      csr: 'All',
-      legalEntity: 'All',
-      counterparty: 'All',
-      cobFrom: '10-Oct-2022',
-      cobTo: '11-Oct-2022',
-      product: 'DERIVATIVES'
-    });
-    setResults(null);
-  };
+# Build using MFE architecture
+mvn clean package -P mfe
+Module Federation Details
+The application uses Webpack Module Federation to share components between packages:
 
-  return (
-    <SaltProvider mode="light" theme="modern">
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--salt-color-gray-10)', padding: '24px' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-          
-          {/* Header */}
-          <Card style={{ marginBottom: '24px', padding: '24px' }}>
-            <FlexLayout align="center" gap={2}>
-            
-              <Text styleAs="h1">Financial Data Filters</Text>
-            </FlexLayout>
-          </Card>
+Dashboard: Exposes DashboardApp component
+Call Management: Exposes CallManagementApp component
+Common: Consumes the exposed components and combines them into a unified application
+Production Deployment
+The build process generates static assets that are copied to the target/classes/static/ directory, organized by component:
 
-          {/* Filter Form */}
-          <Card style={{ padding: '32px' }}>
-            <StackLayout gap={4}>
-              
-              {/* First Row of Filters */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                <FormField>
-                  <FormFieldLabel>Region</FormFieldLabel>
-                  <Dropdown
-                    value={formData.region}
-                    onSelectionChange={(_, value) => handleDropdownChange('region', value)}
-                  >
-                    {regionOptions.map((option) => (
-                      <Option key={option} value={option}>
-                        {option}
-                      </Option>
-                    ))}
-                  </Dropdown>
-                </FormField>
+/static/common/ - Common shell application
+/static/dashboard/ - Dashboard micro frontend
+/static/callmanagement/ - Call management micro frontend
+/static/movements/ - Movements micro frontend
+Customization
+Each micro frontend can be customized and extended independently without affecting other parts of the application. The Module Federation setup ensures that all applications share the same React context, enabling seamless integration.
 
-                <FormField>
-                  <FormFieldLabel>CSR</FormFieldLabel>
-                  <Dropdown
-                    value={formData.csr}
-                    onSelectionChange={(_, value) => handleDropdownChange('csr', value)}
-                  >
-                    {csrOptions.map((option) => (
-                      <Option key={option} value={option}>
-                        {option}
-                      </Option>
-                    ))}
-                  </Dropdown>
-                </FormField>
+Troubleshooting
+Common Issues
+Webpack Version Compatibility: If you see errors about webpack configuration, ensure the versions of webpack, webpack-cli, and webpack-dev-server are compatible.
 
-                <FormField>
-                  <FormFieldLabel>Legal Entity</FormFieldLabel>
-                  <Dropdown
-                    value={formData.legalEntity}
-                    onSelectionChange={(_, value) => handleDropdownChange('legalEntity', value)}
-                  >
-                    {legalEntityOptions.map((option) => (
-                      <Option key={option} value={option}>
-                        {option}
-                      </Option>
-                    ))}
-                  </Dropdown>
-                </FormField>
+Module Federation Remote Loading: If remote modules fail to load, check network connectivity and ensure the remote entry points are accessible.
 
-                <FormField>
-                  <FormFieldLabel>Counterparty</FormFieldLabel>
-                  <Dropdown
-                    value={formData.counterparty}
-                    onSelectionChange={(_, value) => handleDropdownChange('counterparty', value)}
-                  >
-                    {counterpartyOptions.map((option) => (
-                      <Option key={option} value={option}>
-                        {option}
-                      </Option>
-                    ))}
-                  </Dropdown>
-                </FormField>
-              </div>
-
-              {/* Second Row - Date Range and Product */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', alignItems: 'end' }}>
-                <FormField>
-                  <FormFieldLabel>COB From</FormFieldLabel>
-                  <Input
-                    value={formData.cobFrom}
-                    onChange={(e) => handleInputChange('cobFrom', e.target.value)}
-                    placeholder="DD-MMM-YYYY"
-                    endAdornment={<CalendarIcon />}
-                  />
-                </FormField>
-
-                <FormField>
-                  <FormFieldLabel>COB To</FormFieldLabel>
-                  <Input
-                    value={formData.cobTo}
-                    onChange={(e) => handleInputChange('cobTo', e.target.value)}
-                    placeholder="DD-MMM-YYYY"
-                    endAdornment={<CalendarIcon />}
-                  />
-                </FormField>
-
-                <FormField>
-                  <FormFieldLabel>Product</FormFieldLabel>
-                  <Dropdown
-                    value={formData.product}
-                    onSelectionChange={(_, value) => handleDropdownChange('product', value)}
-                  >
-                    {productOptions.map((option) => (
-                      <Option key={option} value={option}>
-                        {option}
-                      </Option>
-                    ))}
-                  </Dropdown>
-                </FormField>
-              </div>
-
-              {/* Action Buttons */}
-              <FlexLayout gap={2}>
-                <Button 
-                  variant="cta" 
-                  onClick={handleApplyFilters}
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Applying...' : 'Apply Filters'}
-                </Button>
-                <Button 
-                  variant="secondary" 
-                  onClick={handleReset}
-                  disabled={isLoading}
-                >
-                  Reset
-                </Button>
-              </FlexLayout>
-
-            </StackLayout>
-          </Card>
-
-          {/* Results Banner */}
-          {results && (
-            <Banner 
-              status={results.includes('error') || results.includes('failed') ? 'error' : 'success'}
-              style={{ marginTop: '24px' }}
-            >
-              {results}
-            </Banner>
-          )}
-
-          {/* Current Selection Summary */}
-          <Card style={{ marginTop: '24px', padding: '20px' }}>
-            <Text styleAs="h3" style={{ marginBottom: '12px' }}>Current Selection Summary</Text>
-            <FlexLayout direction="column" gap={1}>
-              <Text><strong>Region:</strong> {formData.region}</Text>
-              <Text><strong>CSR:</strong> {formData.csr}</Text>
-              <Text><strong>Legal Entity:</strong> {formData.legalEntity}</Text>
-              <Text><strong>Counterparty:</strong> {formData.counterparty}</Text>
-              <Text><strong>COB Period:</strong> {formData.cobFrom} to {formData.cobTo}</Text>
-              <Text><strong>Product:</strong> {formData.product}</Text>
-            </FlexLayout>
-          </Card>
-
-        </div>
-      </div>
-    </SaltProvider>
-  );
-};
-
-function App() {
-  return (
-    <div className="App">
-      <FinancialFilterForm />
-    </div>
-  );
-}
-
-export default App;
+React Version Mismatch: All packages must use the same React version to avoid duplicate React instances.
