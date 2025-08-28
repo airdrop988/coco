@@ -1,113 +1,125 @@
-{
-  "name": "callmanagement",
-  "version": "0.1.0",
-  "private": true,
-  "homepage": "/callmanagement",
-  "dependencies": {
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^11.2.7",
-    "@testing-library/user-event": "^12.8.3",
-    "@jpmuitk/logo": "^33.0.0",
-    "@jpmuitk/accordion": "^33.0.0",
-    "@jpmuitk/app-header": "^33.0.0",
-    "@jpmuitk/aria-announcer": "^33.0.0",
-    "@jpmuitk/banner": "^33.0.0",
-    "@jpmuitk/button": "^33.0.0",
-    "@jpmuitk/button-bar": "^33.0.0",
-    "@jpmuitk/code-block": "^33.0.0",
-    "@jpmuitk/components": "^33.0.0",
-    "@jpmuitk/data-grid": "^33.0.0",
-    "@jpmuitk/date-picker": "^33.0.0",
-    "@jpmuitk/file-drop-zone": "^33.0.0",
-    "@jpmuitk/icon": "^33.0.0",
-    "@jpmuitk/radio-button": "^33.0.0",
-    "@jpmuitk/style": "^33.0.0",
-    "@jpmuitk/theme": "^33.0.0",
-    "@jpmuitk/toast": "^33.0.0",
-    "@jpmuitk/tokenized-input": "^33.0.0",
-    "@jpmuitk/toolbar-next": "^33.0.0",
-    "@jpmuitk/tooltip": "^33.0.0",
-    "@marketsui/blotter": "^30.13.0",
-    "@marketsui/blotter-grid": "^30.13.0",
-    "@marketsui/common": "^30.13.0",
-    "@marketsui/data-client": "^30.13.0",
-    "@marketsui/data-client-provider": "^30.13.0",
-    "@marketsui/filter-components": "^30.13.0",
-    "@marketsui/query-filter": "^30.13.0",
-    "@marketsui/query-manager": "^30.13.0",
-    "@marketsui/save-restore": "^30.13.0",
-    "@marketsui/schema": "^30.13.0",
-    "@marketsui/schema-provider": "^30.13.0",
-    "@material-ui/core": "^4.11.4",
-    "@salt-ds/ag-grid-theme": "2.4.1",
-    "@salt-ds/core": "1.47.1",
-    "@salt-ds/countries": "1.4.16",
-    "@salt-ds/date-adapters": "^0.1.0-alpha.5",
-    "@salt-ds/icons": "1.11.2",
-    "@salt-ds/lab": "^1.0.0-alpha.71",
-    "@salt-ds/theme": "1.30.0",
-    "@uiservices/ui-platform-api-salt-react-bindings": "^0.9.1",
-    "buffer": "^6.0.3",
-    "computed-style-to-inline-style": "^3.0.0",
-    "concurrently": "^8.2.2",
-    "dompurify": "^3.0.5",
-    "graphql": "^16.7.1",
-    "lodash": "^4.17.21",
-    "moment": "^2.30.1",
-    "moment-timezone": "^0.5.43",
-    "numeral": "^2.0.6",
-    "react": "17.0.2",
-    "react-dom": "17.0.2",
-    "react-resizable-panels": "^3.0.3",
-    "styled-components": "^6.0.5",
-    "uuid": "^9.0.0",
-    "@emotion/css": "^11.11.2"
-  },
-  "overrides": {
-    "@material-ui/core": {
-      "react": "$react",
-      "react-dom": "$react-dom",
-      "@types/react": "^17.x.x"
-    }
-  },
-  "devDependencies": {
-    "@module-federation/node": "^2.7.10",
-    "concurrently": "^8.2.0",
-    "webpack": "^5.88.0",
-    "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.1",
-    "fs": "^0.0.2"
-  },
-  "peerDependencies": {
-    "jest-environment-node": "27.5.1",
-    "jest-runner": "^27.5.1",
-    "react": "17.0.2",
-    "react-dom": "17.0.2"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "start:mf": "webpack serve --open",
-    "build": "webpack --mode production",
-    "build:original": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  }
+import React from 'react';
+import './index.css';
+import './App.css';
+import '@salt-ds/theme/index.css';
+import "@salt-ds/ag-grid-theme/salt-ag-theme.css";
+import '@salt-ds/icons/saltIcons.css';
+import '@jpmuitk/style/css/jpmuitk.css';
+import 'ag-grid-community/styles/ag-grid.css';
+//import WorkList from '../dist/commonjs/components/WorkList';
+
+function App() {
+
+    const DEFAULT_COLUMNS = [
+        {name: 'marginCallCob', displayName: 'COB Date', isKey: true},
+        {name: 'marginCallStatus', displayName: 'Margin Call Status'},
+        {name: 'clientEntityName', displayName: 'Counterparty'},
+        {name: 'callDirection', displayName: 'Call Direction'},
+        {name: 'callNotificationTime', displayName: 'Call Notification Time'},
+        {name: 'excessDeficitAmount', displayName: 'Excess Deficit Amount'},
+        {name: 'currencyCode',displayName: 'Currency', showValue: true}
+    ];
+    const allProps = {
+        showMetrics: true,
+        showBlotter: true,
+        align: "start",
+        className: "custom-worklist",
+        metrics: {
+            totalPending: { value: 235 },
+            pendingToday: { value: 57, subtitle: "New Today" },
+            pendingByStatus: [
+                { title: "High Priority", value: 78 },
+                { title: "Medium Priority", value: 92 },
+                { title: "Low Priority", value: 65 }
+            ]
+        },
+        onItemClick: (metric) => console.log("Metric clicked:", metric),
+        blotterHeight: "450px",
+        columns: DEFAULT_COLUMNS,
+        data: [],
+        onBlotterRowClick: (row) => console.log("Row clicked:", row),
+        componentId: "all-props-worklist",
+        blotterTopic: "all-props-topic",
+        apiType: "rest",
+        hostUrl: "http://localhost:92",
+        serviceEndPointPath: '/omcm/api/margincalls/v2/search',
+        httpMethod: "POST",
+        payload: {"filter":"[{\"property\":\"productType\",\"operator\":\"EQUALS\",\"value\":\"DERIVATIVES\"},{\"property\":\"nonCallDay\",\"operator\":\"EQUALS\",\"value\":false},{\"property\":\"asOfDate\",\"operator\":\"GREATER_THAN_EQUALS\",\"value\":\"27-Aug-2025\"},{\"property\":\"startDate\",\"operator\":\"GREATER_THAN_EQUALS\",\"value\":\"2025-08-27\"},{\"property\":\"asOfDate\",\"operator\":\"LESS_THAN_EQUALS\",\"value\":\"27-Aug-2025\"},{\"property\":\"endDate\",\"operator\":\"LESS_THAN_EQUALS\",\"value\":\"2025-08-27\"},{\"property\":\"region\",\"operator\":\"EQUALS\",\"value\":\"AMERICA\"}]"},
+        density: "high",
+        tabTitles: ["My Worklist", "Team Worklist", "Call Search"],
+        activeTabIndex: 0,
+        onTabChange: (index, title) => console.log("Tab changed:", index, title),
+        hideMetricsOnTabIndex: 2,
+        onSearch: (criteria) => console.log("Search:", criteria),
+        onReset: () => console.log("Reset"),
+        searchFields: [
+            {
+                id: "product",
+                label: "Product",
+                options: ["CROSS-MARGIN", "DERIVATIVES", "PB", "GC", "FI-REPO", "TBA", "TCP"]
+            },
+            {
+                id: "region",
+                label: "Region",
+                options: ["AMERICA", "ASIA", "EUROPE", "FRANCE", "INDIA", "SAMERICA"]
+            },
+            {
+                id: "csr",
+                label: "CSR",
+                options: ["CSR1", "CSR2", "CSR3", "CSR4"]
+            },
+            {
+                id: "legalEntity",
+                label: "Legal Entity",
+                options: ["JPM Securities", "JPM Chase Bank", "JPM Asset Management"]
+            },
+            {
+                id: "counterparty",
+                label: "Counterparty",
+                options: ["Client A", "Client B", "Client C", "Client D"]
+            }
+        ],
+        resetButtonLabel: "Reset",
+        searchButtonLabel: "Search",
+        productOptions: ["Equity", "FX"],
+        regionOptions: ["EMEA", "APAC"],
+        csrOptions: ["CSR1", "CSR2"],
+        legalEntityOptions: ["LE1", "LE2"],
+        counterpartyOptions: ["CP1", "CP2"],
+        searchProps: {
+            placeholder: "Search...",
+            debounceTime: 300,
+            minSearchLength: 2
+        },
+        theme: "dark",
+        themeObj: undefined,
+        fetchCallback: async () => [],
+        myWorklistProps: { toolbarItems: [] },
+        teamWorklistProps: { toolbarItems: [] },
+        callsProps: { toolbarItems: [] },
+        loading: false,
+    };
+
+    const fetchCallbackMockedData = async (filterRule, tabIndex = 0) => {
+        // Return different data sets based on active tab index
+        switch (tabIndex) {
+            case 0: // My Worklist tab
+                return [];
+            case 1: // My Team Worklist tab
+                return [];
+            case 2: // Calls tab
+                return [];
+            default:
+                return [];
+        }
+    };
+    return (
+        <div className="App">
+            <WorkList
+                {...allProps}
+            />
+        </div>
+    );
 }
+
+export default App;
