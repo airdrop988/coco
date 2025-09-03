@@ -6,19 +6,54 @@ import "@salt-ds/ag-grid-theme/salt-ag-theme.css";
 import '@salt-ds/icons/saltIcons.css';
 import '@jpmuitk/style/css/jpmuitk.css';
 import 'ag-grid-community/styles/ag-grid.css';
-//import WorkList from '../dist/commonjs/components/WorkList';
+// import WorkList from '../dist/commonjs/components/WorkList';
+import { useTheme } from "@salt-ds/core";
+import {
+    DERIVATIVES_DEFAULT_COLUMNS_AS_BLOTTER,
+    CROSSMARGIN_COLUMNS,
+} from "./Constant";
 
 function App() {
+    const toCamelCase = str =>
+        str
+            .replace(/[^a-zA-Z0-9 ]/g, '')
+            .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) =>
+                index === 0 ? word.toLowerCase() : word.toUpperCase()
+            )
+            .replace(/\s+/g, '');
 
-    const DEFAULT_COLUMNS = [
-        {name: 'marginCallCob', displayName: 'COB Date', isKey: true},
-        {name: 'marginCallStatus', displayName: 'Margin Call Status'},
-        {name: 'clientEntityName', displayName: 'Counterparty'},
-        {name: 'callDirection', displayName: 'Call Direction'},
-        {name: 'callNotificationTime', displayName: 'Call Notification Time'},
-        {name: 'excessDeficitAmount', displayName: 'Excess Deficit Amount'},
-        {name: 'currencyCode',displayName: 'Currency', showValue: true}
-    ];
+    console.log("DERIVATIVES_DEFAULT_COLUMNS_AS_BLOTTER",DERIVATIVES_DEFAULT_COLUMNS_AS_BLOTTER);
+
+    const CROSSMARGIN_DEFAULT_COLUMNS = CROSSMARGIN_COLUMNS.map(col => ({
+        name: toCamelCase(col),
+        displayName: col
+    }));
+
+    const [columns, setColumns] = React.useState(DERIVATIVES_DEFAULT_COLUMNS_AS_BLOTTER);
+
+    const handleFieldChange = (fieldName, value, formState, tabIndex) => {
+        console.log(`Field ${fieldName} changed to ${value} on tab ${tabIndex}`);
+        console.log('Current form state:', formState);
+        switch (value) {
+            case "DERIVATIVES":
+            case "PB":
+            case "GC":
+            case "FI-REPO":
+            case "TBA":
+            case "TCP":
+                setColumns(DERIVATIVES_DEFAULT_COLUMNS_AS_BLOTTER);
+                break;
+            case "CROSS MARGIN":
+                setColumns(CROSSMARGIN_DEFAULT_COLUMNS);
+                break;
+            default:
+                setColumns(DERIVATIVES_DEFAULT_COLUMNS_AS_BLOTTER);
+                break;
+        }
+    };
+
+    const { mode } = useTheme();
+
     const allProps = {
         showMetrics: true,
         showBlotter: true,
@@ -34,8 +69,8 @@ function App() {
             ]
         },
         onItemClick: (metric) => console.log("Metric clicked:", metric),
-        blotterHeight: "450px",
-        columns: DEFAULT_COLUMNS,
+        //blotterHeight: "450px",
+        columns: columns,
         data: [],
         onBlotterRowClick: (row) => console.log("Row clicked:", row),
         componentId: "all-props-worklist",
@@ -44,7 +79,15 @@ function App() {
         hostUrl: "http://localhost:92",
         serviceEndPointPath: '/omcm/api/margincalls/v2/search',
         httpMethod: "POST",
-        payload: {"filter":"[{\"property\":\"productType\",\"operator\":\"EQUALS\",\"value\":\"DERIVATIVES\"},{\"property\":\"nonCallDay\",\"operator\":\"EQUALS\",\"value\":false},{\"property\":\"asOfDate\",\"operator\":\"GREATER_THAN_EQUALS\",\"value\":\"27-Aug-2025\"},{\"property\":\"startDate\",\"operator\":\"GREATER_THAN_EQUALS\",\"value\":\"2025-08-27\"},{\"property\":\"asOfDate\",\"operator\":\"LESS_THAN_EQUALS\",\"value\":\"27-Aug-2025\"},{\"property\":\"endDate\",\"operator\":\"LESS_THAN_EQUALS\",\"value\":\"2025-08-27\"},{\"property\":\"region\",\"operator\":\"EQUALS\",\"value\":\"AMERICA\"}]"},
+        payload: {"filter":[
+                {"property":"productType","operator":"EQUALS","value":"DERIVATIVES"},
+                {"property":"nonCallDay","operator":"EQUALS","value":false},
+                {"property":"asOfDate","operator":"GREATER_THAN_EQUALS","value":"27-Aug-2025"},
+                {"property":"startDate","operator":"GREATER_THAN_EQUALS","value":"2025-08-27"},
+                {"property":"asOfDate","operator":"LESS_THAN_EQUALS","value":"27-Aug-2025"},
+                {"property":"endDate","operator":"LESS_THAN_EQUALS","value":"2025-08-27"},
+                {"property":"region","operator":"EQUALS","value":"AMERICA"}
+            ]},
         density: "high",
         tabTitles: ["My Worklist", "Team Worklist", "Call Search"],
         activeTabIndex: 0,
@@ -52,11 +95,12 @@ function App() {
         hideMetricsOnTabIndex: 2,
         onSearch: (criteria) => console.log("Search:", criteria),
         onReset: () => console.log("Reset"),
+        onFieldChange: (fieldName, value, formState, tabIndex) => handleFieldChange(fieldName, value, formState, tabIndex),
         searchFields: [
             {
                 id: "product",
                 label: "Product",
-                options: ["CROSS-MARGIN", "DERIVATIVES", "PB", "GC", "FI-REPO", "TBA", "TCP"]
+                options: ["CROSS MARGIN", "DERIVATIVES", "PB", "GC", "FI-REPO", "TBA", "TCP"]
             },
             {
                 id: "region",
@@ -91,7 +135,7 @@ function App() {
             debounceTime: 300,
             minSearchLength: 2
         },
-        theme: "dark",
+        theme: mode,
         themeObj: undefined,
         fetchCallback: async () => [],
         myWorklistProps: { toolbarItems: [] },
@@ -115,9 +159,14 @@ function App() {
     };
     return (
         <div className="App">
-            <WorkList
+            {/* <WorkList
                 {...allProps}
-            />
+            /> */
+            
+            <p>Phani</p>
+            
+            }
+
         </div>
     );
 }
