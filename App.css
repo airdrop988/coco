@@ -1,48 +1,10 @@
-cd src/main/coll-mgmt-ui/packages/callmanagement
-npm install --save-dev style-loader css-loader
+.App {
+  display: flex;
+  flex-direction: column;
+  min-height: 90vh;
+  width: 100%;
+}
 
-
-
-cd src/main/coll-mgmt-ui/packages/callmanagement/src
-grep -r "@salt-ds/theme/index.css" .
-grep -r "salt-ag-theme.css" .
-grep -r "ag-grid.css" .
-
-
-import '@salt-ds/theme';
-import '@salt-ds/ag-grid-theme';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
-
-
-# Navigate to callmanagement package
-cd src/main/coll-mgmt-ui/packages/callmanagement
-
-# Install missing loaders
-npm install --save-dev style-loader css-loader
-
-# Install missing packages (if needed)
-npm install @salt-ds/ag-grid-theme ag-grid-community ag-grid-react
-
-# Clean and reinstall
-rm -rf node_modules package-lock.json
-npm install
-
-
-
-import '@salt-ds/theme';                     // Correct
-import '@salt-ds/ag-grid-theme';            // Correct
-import '@salt-ds/icons';                    // Correct
-import 'ag-grid-community/styles/ag-theme-alpine.css';  // Added theme
-
-
-cd src/main/coll-mgmt-ui/packages/callmanagement
-
-# Install missing dev dependencies
-npm install --save-dev style-loader css-loader
-
-# Make sure all packages are installed
-npm install
-
-# Start the micro frontend
-npm run start:mf
+.App-link {
+  color: #61dafb;
+}
