@@ -1,0 +1,1418 @@
+//CallManagementContainer  component 
+
+// src/callmanagement/components/CallManagementContainer.jsx
+import React, { useState, useCallback } from 'react';
+import { FlexLayout, Panel } from '@salt-ds/core';
+import { Splitter } from '@salt-ds/core';
+import CallGrid from './CallGrid';
+import RightSidePanel from './RightSidePanel';
+import './CallManagementContainer.module.css';
+
+const CallManagementContainer = ({ 
+  columns, 
+  data, 
+  onBlotterRowClick,
+  apiConfig,
+  ...restProps 
+}) => {
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [panelVisible, setPanelVisible] = useState(false);
+  const [panelWidth, setPanelWidth] = useState(35); // 35% of container width
+
+  const handleRowClick = useCallback((rowData) => {
+    setSelectedRow(rowData);
+    setPanelVisible(true);
+    
+    // Call parent callback if provided
+    if (onBlotterRowClick) {
+      onBlotterRowClick(rowData);
+    }
+  }, [onBlotterRowClick]);
+
+  const handlePanelClose = useCallback(() => {
+    setPanelVisible(false);
+    setSelectedRow(null);
+  }, []);
+
+  const handlePanelResize = useCallback((newWidth) => {
+    setPanelWidth(Math.max(25, Math.min(50, newWidth))); // Min 25%, Max 50%
+  }, []);
+
+  return (
+    <div className="call-management-container">
+      <FlexLayout direction="row" style={{ height: '100vh' }}>
+        {/* Main Grid Area */}
+        <Panel
+          style={{
+            flex: panelVisible ? `0 0 ${100 - panelWidth}%` : '1 1 100%',
+            transition: 'flex 0.3s ease-in-out',
+            minWidth: panelVisible ? '50%' : 'auto'
+          }}
+        >
+          <CallGrid
+            columns={columns}
+            data={data}
+            onRowClick={handleRowClick}
+            apiConfig={apiConfig}
+            {...restProps}
+          />
+        </Panel>
+
+        {/* Resizable Splitter */}
+        {panelVisible && (
+          <div 
+            className="panel-splitter"
+            onMouseDown={(e) => {
+              const startX = e.clientX;
+              const startWidth = panelWidth;
+              
+              const handleMouseMove = (e) => {
+                const container = e.currentTarget.closest('.call-management-container');
+                const containerWidth = container.offsetWidth;
+                const deltaX = startX - e.clientX;
+                const newWidth = startWidth + (deltaX / containerWidth) * 100;
+                handlePanelResize(newWidth);
+              };
+
+              const handleMouseUp = () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+              };
+
+              document.addEventListener('mousemove', handleMouseMove);
+              document.addEventListener('mouseup', handleMouseUp);
+            }}
+          />
+        )}
+
+        {/* Right Side Panel */}
+        {panelVisible && (
+          <Panel
+            style={{
+              flex: `0 0 ${panelWidth}%`,
+              transition: 'flex 0.3s ease-in-out',
+              minWidth: '300px',
+              maxWidth: '50%'
+            }}
+          >
+            <RightSidePanel
+              selectedRow={selectedRow}
+              onClose={handlePanelClose}
+              onResize={handlePanelResize}
+              width={panelWidth}
+            />
+          </Panel>
+        )}
+      </FlexLayout>
+    </div>
+  );
+};
+
+export default CallManagementContainer;
+
+
+//RightSidePanel  component
+// src/callmanagement/components/RightSidePanel/RightSidePanel.jsx
+import React, { useState } from 'react';
+import { 
+  Panel, 
+  TabNext, 
+  TabListNext, 
+  TabPanelNext, 
+  TabsNext,
+  Button,
+  FlexLayout,
+  Text
+} from '@salt-ds/core';
+import { CloseIcon } from '@salt-ds/icons';
+import DetailsTab from './DetailsTab';
+import ActionTab from './ActionTab';
+import PanelHeader from './PanelHeader';
+import './RightSidePanel.module.css';
+
+const RightSidePanel = ({ selectedRow, onClose, onResize, width }) => {
+  const [activeTab, setActiveTab] = useState('details');
+
+  if (!selectedRow) {
+    return null;
+  }
+
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
+
+  return (
+    <Panel className="right-side-panel">
+      {/* Panel Header */}
+      <div className="panel-header">
+        <FlexLayout direction="row" justify="space-between" align="center">
+          <PanelHeader selectedRow={selectedRow} />
+          <Button
+            variant="secondary"
+            onClick={onClose}
+            aria-label="Close panel"
+          >
+            <CloseIcon />
+          </Button>
+        </FlexLayout>
+      </div>
+
+      {/* Panel Content with Tabs */}
+      <div className="panel-content">
+        <TabsNext value={activeTab} onChange={handleTabChange}>
+          <TabListNext>
+            <TabNext value="details">Details</TabNext>
+            <TabNext value="action">Action</TabNext>
+          </TabListNext>
+
+          <TabPanelNext value="details">
+            <DetailsTab selectedRow={selectedRow} />
+          </TabPanelNext>
+
+          <TabPanelNext value="action">
+            <ActionTab selectedRow={selectedRow} />
+          </TabPanelNext>
+        </TabsNext>
+      </div>
+    </Panel>
+  );
+};
+
+export default RightSidePanel;
+
+//PanelHeader  component 
+// src/callmanagement/components/RightSidePanel/PanelHeader.jsx
+import React from 'react';
+import { Text, FlexLayout } from '@salt-ds/core';
+
+const PanelHeader = ({ selectedRow }) => {
+  // Extract product type and agreement/account information from selected row
+  const getProductType = (row) => {
+    // This could be derived from various fields based on your data structure
+    return row.productType || row.segregationModel || 'Product';
+  };
+
+  const getAgreementAccount = (row) => {
+    // Priority order: Agreement Number -> Account ID -> Client Entity Name
+    return row.agreementNumber || 
+           row.accountId || 
+           row.clientEntityName || 
+           'Account';
+  };
+
+  const productType = getProductType(selectedRow);
+  const agreementAccount = getAgreementAccount(selectedRow);
+
+  return (
+    <FlexLayout direction="column" className="panel-header-content">
+      <Text styleAs="h3" className="panel-title">
+        {productType} | {agreementAccount}
+      </Text>
+      {selectedRow.callID && (
+        <Text styleAs="body2" color="secondary" className="panel-subtitle">
+          Call ID: {selectedRow.callID}
+        </Text>
+      )}
+    </FlexLayout>
+  );
+};
+
+export default PanelHeader;
+
+//DetailsTab  component
+// src/callmanagement/components/RightSidePanel/DetailsTab.jsx
+import React from 'react';
+import { 
+  FlexLayout, 
+  Panel, 
+  Text, 
+  Card,
+  StackLayout
+} from '@salt-ds/core';
+import MetricsDisplay from '../MetricsDisplay';
+
+const DetailsTab = ({ selectedRow }) => {
+  // Group data into logical sections based on your requirements
+  const getCallDetails = (row) => ({
+    'Call Status': row.marginCallStatus,
+    'COB Date': row.cobDate,
+    'Statement ID': row.statementId,
+    'Call ID': row.callID,
+    'Version': row.version,
+    'Good Order': row.goodOrder
+  });
+
+  const getPartyDetails = (row) => ({
+    'Counterparty': row.clientEntityName,
+    'Legal Entity': row.legalEntityName,
+    'Agreement Number': row.agreementNumber,
+    'CSR': row.cSR,
+    'Region': row.region
+  });
+
+  const getAmountDetails = (row) => ({
+    'Excess/Deficit Amount': `${row.excessDeficitInRPTCCY || 0} ${row.repCCY || ''}`,
+    'CP Call Amount': `${row.cPCallAmount || 0} ${row.repCCY || ''}`,
+    'Agreed Amount': `${row.agreedAmount || 0} ${row.repCCY || ''}`,
+    'Disputed Amount': `${row.disputedAmount || 0} ${row.repCCY || ''}`,
+    'VM': `${row.vM || 0} ${row.repCCY || ''}`,
+    'IM': `${row.iM || 0} ${row.repCCY || ''}`
+  });
+
+  const getStatusDetails = (row) => ({
+    'Statement Status': row.statementStatus,
+    'Call Notification Status': row.issueCallNotificationStatus,
+    'Notification Time': row.callNotificationTime,
+    'Released Time': row.releasedTime,
+    'Auto Release': row.autoRelease ? 'Yes' : 'No'
+  });
+
+  const renderDetailGroup = (title, details) => (
+    <Card className="detail-group" key={title}>
+      <Text styleAs="h4" className="group-title">{title}</Text>
+      <StackLayout gap={1}>
+        {Object.entries(details).map(([key, value]) => (
+          <FlexLayout 
+            key={key} 
+            direction="row" 
+            justify="space-between" 
+            className="detail-item"
+          >
+            <Text className="detail-label">{key}:</Text>
+            <Text className="detail-value" weight="strong">
+              {value || 'N/A'}
+            </Text>
+          </FlexLayout>
+        ))}
+      </StackLayout>
+    </Card>
+  );
+
+  if (!selectedRow) {
+    return (
+      <Panel className="details-tab-empty">
+        <Text>No data selected</Text>
+      </Panel>
+    );
+  }
+
+  const callDetails = getCallDetails(selectedRow);
+  const partyDetails = getPartyDetails(selectedRow);
+  const amountDetails = getAmountDetails(selectedRow);
+  const statusDetails = getStatusDetails(selectedRow);
+
+  return (
+    <Panel className="details-tab">
+      <StackLayout gap={2}>
+        {/* Metrics Display - as specified in requirements */}
+        <MetricsDisplay selectedRow={selectedRow} />
+        
+        {/* Grouped Detail Sections */}
+        <div className="detail-groups">
+          {renderDetailGroup('Call Information', callDetails)}
+          {renderDetailGroup('Party Details', partyDetails)}
+          {renderDetailGroup('Amount Information', amountDetails)}
+          {renderDetailGroup('Status Information', statusDetails)}
+        </div>
+      </StackLayout>
+    </Panel>
+  );
+};
+
+export default DetailsTab;
+
+//MetricsDisplay component
+// src/callmanagement/components/MetricsDisplay/MetricsDisplay.jsx
+import React from 'react';
+import { 
+  FlexLayout, 
+  Panel, 
+  Text, 
+  Card,
+  Badge
+} from '@salt-ds/core';
+import numeral from 'numeral';
+
+const MetricsDisplay = ({ selectedRow }) => {
+  // Format currency values
+  const formatCurrency = (amount, currency = 'USD') => {
+    if (!amount || isNaN(amount)) return 'N/A';
+    return `${numeral(amount).format('0,0.00')} ${currency}`;
+  };
+
+  // Format percentage values
+  const formatPercentage = (value) => {
+    if (!value || isNaN(value)) return 'N/A';
+    return `${numeral(value).format('0.00')}%`;
+  };
+
+  // Define metrics based on the selected row data
+  const getMetrics = (row) => {
+    const currency = row.repCCY || row.currencyCode || 'USD';
+    
+    return [
+      {
+        label: 'Call Amount',
+        value: formatCurrency(row.cPCallAmount, currency),
+        status: row.cPCallAmount > 0 ? 'positive' : row.cPCallAmount < 0 ? 'negative' : 'neutral',
+        subtitle: 'Current exposure'
+      },
+      {
+        label: 'Excess/Deficit',
+        value: formatCurrency(row.excessDeficitInRPTCCY, currency),
+        status: row.excessDeficitInRPTCCY > 0 ? 'positive' : row.excessDeficitInRPTCCY < 0 ? 'negative' : 'neutral',
+        subtitle: 'Net position'
+      },
+      {
+        label: 'Agreed Amount',
+        value: formatCurrency(row.agreedAmount, currency),
+        status: 'info',
+        subtitle: 'Confirmed value'
+      },
+      {
+        label: 'Disputed Amount',
+        value: formatCurrency(row.disputedAmount, currency),
+        status: row.disputedAmount > 0 ? 'warning' : 'neutral',
+        subtitle: row.disputeDiffAge ? `${row.disputeDiffAge} days old` : 'Age unknown'
+      },
+      {
+        label: 'Total Collateral',
+        value: formatCurrency(row.collateralPosition, currency),
+        status: 'info',
+        subtitle: 'Held position'
+      },
+      {
+        label: 'VM Requirement',
+        value: formatCurrency(row.vM, currency),
+        status: 'neutral',
+        subtitle: 'Variation margin'
+      },
+      {
+        label: 'IM Requirement',
+        value: formatCurrency(row.iM, currency),
+        status: 'neutral',
+        subtitle: 'Initial margin'
+      },
+      {
+        label: 'Good Order Status',
+        value: row.goodOrder || 'Unknown',
+        status: row.goodOrder === 'Yes' ? 'positive' : row.goodOrder === 'No' ? 'negative' : 'warning',
+        subtitle: 'Compliance check'
+      }
+    ];
+  };
+
+  const renderMetricCard = (metric, index) => {
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'positive': return 'success';
+        case 'negative': return 'error';
+        case 'warning': return 'warning';
+        case 'info': return 'info';
+        default: return 'secondary';
+      }
+    };
+
+    return (
+      <Card 
+        key={index} 
+        className={`metric-card metric-${metric.status}`}
+        variant="primary"
+      >
+        <FlexLayout direction="column" gap={1}>
+          <Text styleAs="label" className="metric-label">
+            {metric.label}
+          </Text>
+          <FlexLayout direction="row" align="center" gap={1}>
+            <Text styleAs="h4" className="metric-value">
+              {metric.value}
+            </Text>
+            {metric.status !== 'neutral' && (
+              <Badge variant={getStatusColor(metric.status)} />
+            )}
+          </FlexLayout>
+          {metric.subtitle && (
+            <Text styleAs="body2" color="secondary" className="metric-subtitle">
+              {metric.subtitle}
+            </Text>
+          )}
+        </FlexLayout>
+      </Card>
+    );
+  };
+
+  if (!selectedRow) {
+    return null;
+  }
+
+  const metrics = getMetrics(selectedRow);
+
+  return (
+    <Panel className="metrics-display">
+      <Text styleAs="h4" className="metrics-title">
+        Key Metrics Overview
+      </Text>
+      
+      {/* Primary Metrics - Display in 2-column flex layout */}
+      <div className="metrics-grid-primary">
+        <FlexLayout direction="row" wrap gap={2}>
+          {metrics.slice(0, 4).map((metric, index) => renderMetricCard(metric, index))}
+        </FlexLayout>
+      </div>
+
+      {/* Secondary Metrics - Display in single column stack */}
+      <div className="metrics-stack-secondary">
+        <FlexLayout direction="column" gap={1}>
+          {metrics.slice(4).map((metric, index) => renderMetricCard(metric, index + 4))}
+        </FlexLayout>
+      </div>
+    </Panel>
+  );
+};
+
+export default MetricsDisplay;
+
+//ActionTab component
+// src/callmanagement/components/RightSidePanel/ActionTab.jsx
+import React, { useState } from 'react';
+import { 
+  FlexLayout,
+  StackLayout,
+  Panel,
+  Text,
+  Button,
+  FormField,
+  FormFieldLabel,
+  Input,
+  Dropdown,
+  Option,
+  TextArea,
+  Toast,
+  ToastContent,
+  Card
+} from '@salt-ds/core';
+import { CheckIcon, WarningIcon } from '@salt-ds/icons';
+
+const ActionTab = ({ selectedRow }) => {
+  const [formData, setFormData] = useState({
+    action: '',
+    amount: '',
+    currency: selectedRow?.repCCY || 'USD',
+    comments: '',
+    disputeReason: '',
+    priority: 'Medium'
+  });
+  
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('info');
+
+  // Action options based on call status and type
+  const getActionOptions = (row) => {
+    const baseActions = [
+      { value: 'agree', label: 'Agree to Call' },
+      { value: 'dispute', label: 'Dispute Call' },
+      { value: 'partial_agree', label: 'Partial Agreement' },
+      { value: 'request_review', label: 'Request Review' }
+    ];
+
+    // Add status-specific actions
+    if (row?.marginCallStatus === 'Pending') {
+      baseActions.push(
+        { value: 'approve', label: 'Approve Call' },
+        { value: 'reject', label: 'Reject Call' }
+      );
+    }
+
+    if (row?.disputedAmount > 0) {
+      baseActions.push(
+        { value: 'resolve_dispute', label: 'Resolve Dispute' },
+        { value: 'escalate_dispute', label: 'Escalate Dispute' }
+      );
+    }
+
+    return baseActions;
+  };
+
+  const disputeReasons = [
+    'Valuation Discrepancy',
+    'Trade Settlement Issue',
+    'Collateral Calculation Error',
+    'Documentation Missing',
+    'System Error',
+    'Other'
+  ];
+
+  const priorityOptions = [
+    { value: 'High', label: 'High Priority' },
+    { value: 'Medium', label: 'Medium Priority' },
+    { value: 'Low', label: 'Low Priority' }
+  ];
+
+  const handleFieldChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      // Validate required fields
+      if (!formData.action) {
+        throw new Error('Please select an action');
+      }
+
+      if (formData.action === 'dispute' && !formData.disputeReason) {
+        throw new Error('Dispute reason is required');
+      }
+
+      if (formData.action === 'partial_agree' && !formData.amount) {
+        throw new Error('Amount is required for partial agreement');
+      }
+
+      // Here you would make your API call to submit the action
+      const payload = {
+        callId: selectedRow.callID,
+        statementId: selectedRow.statementId,
+        action: formData.action,
+        amount: formData.amount,
+        currency: formData.currency,
+        comments: formData.comments,
+        disputeReason: formData.disputeReason,
+        priority: formData.priority,
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('Submitting action:', payload);
+
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      setToastMessage(`Action "${formData.action}" submitted successfully`);
+      setToastType('success');
+      setShowToast(true);
+
+      // Reset form
+      setFormData({
+        action: '',
+        amount: '',
+        currency: selectedRow?.repCCY || 'USD',
+        comments: '',
+        disputeReason: '',
+        priority: 'Medium'
+      });
+
+    } catch (error) {
+      setToastMessage(error.message);
+      setToastType('error');
+      setShowToast(true);
+    }
+  };
+
+  const handleReset = () => {
+    setFormData({
+      action: '',
+      amount: '',
+      currency: selectedRow?.repCCY || 'USD',
+      comments: '',
+      disputeReason: '',
+      priority: 'Medium'
+    });
+  };
+
+  if (!selectedRow) {
+    return (
+      <Panel className="action-tab-empty">
+        <Text>No call selected for action</Text>
+      </Panel>
+    );
+  }
+
+  const actionOptions = getActionOptions(selectedRow);
+  const showAmountField = ['partial_agree', 'agree'].includes(formData.action);
+  const showDisputeFields = formData.action === 'dispute';
+
+  return (
+    <Panel className="action-tab">
+      <StackLayout gap={2}>
+        {/* Call Summary */}
+        <Card className="action-summary">
+          <Text styleAs="h4">Action for Call</Text>
+          <FlexLayout direction="column" gap={1}>
+            <Text styleAs="body2">
+              <strong>Call ID:</strong> {selectedRow.callID}
+            </Text>
+            <Text styleAs="body2">
+              <strong>Amount:</strong> {selectedRow.cPCallAmount} {selectedRow.repCCY}
+            </Text>
+            <Text styleAs="body2">
+              <strong>Status:</strong> {selectedRow.marginCallStatus}
+            </Text>
+          </FlexLayout>
+        </Card>
+
+        {/* Action Form */}
+        <form onSubmit={handleSubmit}>
+          <StackLayout gap={2}>
+            {/* Action Selection */}
+            <FormField>
+              <FormFieldLabel>Action *</FormFieldLabel>
+              <Dropdown
+                value={formData.action}
+                onChange={(e, value) => handleFieldChange('action', value)}
+                placeholder="Select an action..."
+              >
+                {actionOptions.map(option => (
+                  <Option key={option.value} value={option.value}>
+                    {option.label}
+                  </Option>
+                ))}
+              </Dropdown>
+            </FormField>
+
+            {/* Amount Field - Show for certain actions */}
+            {showAmountField && (
+              <FlexLayout direction="row" gap={1}>
+                <FormField style={{ flex: 2 }}>
+                  <FormFieldLabel>Amount {formData.action === 'partial_agree' ? '*' : ''}</FormFieldLabel>
+                  <Input
+                    type="number"
+                    value={formData.amount}
+                    onChange={(e) => handleFieldChange('amount', e.target.value)}
+                    placeholder="Enter amount"
+                    step="0.01"
+                  />
+                </FormField>
+                <FormField style={{ flex: 1 }}>
+                  <FormFieldLabel>Currency</FormFieldLabel>
+                  <Input
+                    value={formData.currency}
+                    onChange={(e) => handleFieldChange('currency', e.target.value)}
+                    readOnly
+                  />
+                </FormField>
+              </FlexLayout>
+            )}
+
+            {/* Dispute Fields */}
+            {showDisputeFields && (
+              <>
+                <FormField>
+                  <FormFieldLabel>Dispute Reason *</FormFieldLabel>
+                  <Dropdown
+                    value={formData.disputeReason}
+                    onChange={(e, value) => handleFieldChange('disputeReason', value)}
+                    placeholder="Select dispute reason..."
+                  >
+                    {disputeReasons.map(reason => (
+                      <Option key={reason} value={reason}>
+                        {reason}
+                      </Option>
+                    ))}
+                  </Dropdown>
+                </FormField>
+              </>
+            )}
+
+            {/* Priority */}
+            <FormField>
+              <FormFieldLabel>Priority</FormFieldLabel>
+              <Dropdown
+                value={formData.priority}
+                onChange={(e, value) => handleFieldChange('priority', value)}
+              >
+                {priorityOptions.map(option => (
+                  <Option key={option.value} value={option.value}>
+                    {option.label}
+                  </Option>
+                ))}
+              </Dropdown>
+            </FormField>
+
+            {/* Comments */}
+            <FormField>
+              <FormFieldLabel>Comments</FormFieldLabel>
+              <TextArea
+                value={formData.comments}
+                onChange={(e) => handleFieldChange('comments', e.target.value)}
+                placeholder="Add any additional comments..."
+                rows={4}
+              />
+            </FormField>
+
+            {/* Action Buttons */}
+            <FlexLayout direction="row" justify="end" gap={1}>
+              <Button variant="secondary" onClick={handleReset}>
+                Reset
+              </Button>
+              <Button type="submit" variant="cta">
+                Submit Action
+              </Button>
+            </FlexLayout>
+          </StackLayout>
+        </form>
+      </StackLayout>
+
+      {/* Toast Notification */}
+      {showToast && (
+        <Toast
+          status={toastType}
+          onClose={() => setShowToast(false)}
+        >
+          <ToastContent>
+            {toastType === 'success' ? <CheckIcon /> : <WarningIcon />}
+            {toastMessage}
+          </ToastContent>
+        </Toast>
+      )}
+    </Panel>
+  );
+};
+
+export default ActionTab;
+
+//CallGrid  component
+// src/callmanagement/components/CallGrid/CallGrid.jsx
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import { Panel, Text } from '@salt-ds/core';
+import 'ag-grid-community/styles/ag-grid.css';
+import '@salt-ds/ag-grid-theme/salt-ag-theme.css';
+
+const CallGrid = ({ 
+  columns, 
+  data, 
+  onRowClick, 
+  apiConfig,
+  loading = false,
+  ...restProps 
+}) => {
+  const [gridData, setGridData] = useState(data || []);
+  const [gridApi, setGridApi] = useState(null);
+  const [columnApi, setColumnApi] = useState(null);
+
+  // Grid configuration
+  const defaultColDef = useMemo(() => ({
+    sortable: true,
+    filter: true,
+    resizable: true,
+    flex: 1,
+    minWidth: 100,
+    cellClass: 'salt-ag-grid-cell'
+  }), []);
+
+  // Convert column definitions to AG Grid format
+  const columnDefs = useMemo(() => {
+    if (!columns) return [];
+
+    return columns.map(col => ({
+      headerName: col.displayName,
+      field: col.name,
+      sortable: true,
+      filter: true,
+      resizable: true,
+      cellRenderer: (params) => {
+        // Custom cell rendering for specific field types
+        if (col.name.includes('Amount') || col.name.includes('amount')) {
+          const value = params.value;
+          if (value && !isNaN(value)) {
+            const formatted = new Intl.NumberFormat('en-US', {
+              style: 'decimal',
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            }).format(value);
+            return `${formatted}`;
+          }
+        }
+        
+        if (col.name.includes('Time') || col.name.includes('Date')) {
+          const value = params.value;
+          if (value) {
+            try {
+              const date = new Date(value);
+              return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            } catch (e) {
+              return value;
+            }
+          }
+        }
+
+        return params.value || '';
+      },
+      cellClass: (params) => {
+        let classes = ['salt-ag-grid-cell'];
+        
+        // Add status-based styling
+        if (col.name === 'marginCallStatus') {
+          const status = params.value?.toLowerCase();
+          if (status === 'pending') classes.push('status-pending');
+          if (status === 'approved') classes.push('status-approved');
+          if (status === 'disputed') classes.push('status-disputed');
+        }
+
+        // Highlight key columns
+        if (col.isKey) {
+          classes.push('key-column');
+        }
+
+        return classes.join(' ');
+      },
+      width: col.width || undefined,
+      pinned: col.pinned || null
+    }));
+  }, [columns]);
+
+  // Handle grid ready
+  const onGridReady = useCallback((params) => {
+    setGridApi(params.api);
+    setColumnApi(params.columnApi);
+    
+    // Auto-size columns
+    params.api.sizeColumnsToFit();
+  }, []);
+
+  // Handle row selection
+  const onRowClicked = useCallback((event) => {
+    const rowData = event.data;
+    if (onRowClick) {
+      onRowClick(rowData);
+    }
+  }, [onRowClick]);
+
+  // Fetch data from API if configuration is provided
+  const fetchData = useCallback(async () => {
+    if (!apiConfig) return;
+
+    try {
+      const { hostUrl, serviceEndPointPath, httpMethod = 'GET', payload } = apiConfig;
+      const url = `${hostUrl}${serviceEndPointPath}`;
+      
+      const options = {
+        method: httpMethod,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      };
+
+      if (httpMethod === 'POST' && payload) {
+        options.body = JSON.stringify(payload);
+      }
+
+      const response = await fetch(url, options);
+      const result = await response.json();
+      
+      // Handle different response formats
+      let dataArray = [];
+      if (Array.isArray(result)) {
+        dataArray = result;
+      } else if (result.data && Array.isArray(result.data)) {
+        dataArray = result.data;
+      } else if (result.content && Array.isArray(result.content)) {
+        dataArray = result.content;
+      }
+
+      setGridData(dataArray);
+    } catch (error) {
+      console.error('Error fetching grid data:', error);
+      setGridData([]);
+    }
+  }, [apiConfig]);
+
+  // Update data when props change
+  useEffect(() => {
+    if (data && Array.isArray(data)) {
+      setGridData(data);
+    } else if (apiConfig) {
+      fetchData();
+    }
+  }, [data, apiConfig, fetchData]);
+
+  // Grid theme configuration
+  const gridTheme = 'salt-ag-theme';
+
+  if (!columns || columns.length === 0) {
+    return (
+      <Panel className="call-grid-empty">
+        <Text>No columns configured for display</Text>
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel className="call-grid-container">
+      <div className={`${gridTheme}`} style={{ height: '100%', width: '100%' }}>
+        <AgGridReact
+          columnDefs={columnDefs}
+          rowData={gridData}
+          defaultColDef={defaultColDef}
+          onGridReady={onGridReady}
+          onRowClicked={onRowClicked}
+          rowSelection="single"
+          animateRows={true}
+          enableCellTextSelection={true}
+          suppressRowDeselection={false}
+          rowHeight={35}
+          headerHeight={40}
+          suppressMenuHide={false}
+          suppressColumnVirtualisation={false}
+          suppressRowVirtualisation={false}
+          enableRangeSelection={true}
+          enableFillHandle={true}
+          undoRedoCellEditing={true}
+          loading={loading}
+          loadingOverlayComponent="Loading..."
+          noRowsOverlayComponent="No data available"
+          overlayLoadingTemplate="<span class='ag-overlay-loading-center'>Loading...</span>"
+          overlayNoRowsTemplate="<span class='ag-overlay-no-rows-center'>No data to display</span>"
+          {...restProps}
+        />
+      </div>
+    </Panel>
+  );
+};
+
+export default CallGrid;
+
+//CallManagementContainer.module.css file
+
+/* src/callmanagement/components/CallManagementContainer.module.css */
+.call-management-container {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.panel-splitter {
+  width: 4px;
+  background-color: var(--salt-separable-tertiary-borderColor);
+  cursor: col-resize;
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.panel-splitter:hover {
+  background-color: var(--salt-accent-foreground);
+}
+
+.panel-splitter:active {
+  background-color: var(--salt-accent-foreground-active);
+}
+
+/* src/callmanagement/components/RightSidePanel/RightSidePanel.module.css */
+.right-side-panel {
+  height: 100vh;
+  background-color: var(--salt-container-primary-background);
+  border-left: 1px solid var(--salt-separable-primary-borderColor);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  padding: var(--salt-spacing-100);
+  border-bottom: 1px solid var(--salt-separable-primary-borderColor);
+  background-color: var(--salt-container-secondary-background);
+  flex-shrink: 0;
+}
+
+.panel-header-content .panel-title {
+  color: var(--salt-content-primary-foreground);
+  margin-bottom: var(--salt-spacing-50);
+}
+
+.panel-header-content .panel-subtitle {
+  color: var(--salt-content-secondary-foreground);
+}
+
+.panel-content {
+  flex: 1;
+  padding: var(--salt-spacing-100);
+  overflow-y: auto;
+}
+
+/* Details Tab Styles */
+.details-tab {
+  height: 100%;
+}
+
+.details-tab-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--salt-content-secondary-foreground);
+}
+
+.detail-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--salt-spacing-200);
+}
+
+.detail-group {
+  padding: var(--salt-spacing-100);
+  border: 1px solid var(--salt-separable-secondary-borderColor);
+  border-radius: var(--salt-size-border-radius);
+}
+
+.group-title {
+  color: var(--salt-content-primary-foreground);
+  margin-bottom: var(--salt-spacing-100);
+  padding-bottom: var(--salt-spacing-50);
+  border-bottom: 1px solid var(--salt-separable-tertiary-borderColor);
+}
+
+.detail-item {
+  padding: var(--salt-spacing-50) 0;
+  border-bottom: 1px solid var(--salt-separable-tertiary-borderColor);
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  color: var(--salt-content-secondary-foreground);
+  font-size: var(--salt-text-fontSize);
+}
+
+.detail-value {
+  color: var(--salt-content-primary-foreground);
+  text-align: right;
+}
+
+/* Metrics Display Styles */
+.metrics-display {
+  margin-bottom: var(--salt-spacing-200);
+}
+
+.metrics-title {
+  margin-bottom: var(--salt-spacing-150);
+  color: var(--salt-content-primary-foreground);
+}
+
+.metrics-grid-primary {
+  margin-bottom: var(--salt-spacing-150);
+}
+
+.metrics-stack-secondary {
+  margin-bottom: var(--salt-spacing-100);
+}
+
+.metric-card {
+  padding: var(--salt-spacing-100);
+  border-radius: var(--salt-size-border-radius);
+  border: 1px solid var(--salt-separable-secondary-borderColor);
+  background-color: var(--salt-container-secondary-background);
+  min-height: 80px;
+  transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+  border-color: var(--salt-separable-primary-borderColor);
+  box-shadow: var(--salt-overlayable-shadow-1);
+}
+
+.metric-card.metric-positive {
+  border-left: 4px solid var(--salt-status-positive-borderColor);
+}
+
+.metric-card.metric-negative {
+  border-left: 4px solid var(--salt-status-negative-borderColor);
+}
+
+.metric-card.metric-warning {
+  border-left: 4px solid var(--salt-status-warning-borderColor);
+}
+
+.metric-card.metric-info {
+  border-left: 4px solid var(--salt-status-info-borderColor);
+}
+
+.metric-label {
+  color: var(--salt-content-secondary-foreground);
+  font-size: var(--salt-text-label-fontSize);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  color: var(--salt-content-primary-foreground);
+  font-weight: var(--salt-text-fontWeight-strong);
+  margin: var(--salt-spacing-50) 0;
+}
+
+.metric-subtitle {
+  color: var(--salt-content-tertiary-foreground);
+  font-size: var(--salt-text-notation-fontSize);
+}
+
+/* Action Tab Styles */
+.action-tab {
+  height: 100%;
+}
+
+.action-tab-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--salt-content-secondary-foreground);
+}
+
+.action-summary {
+  padding: var(--salt-spacing-100);
+  background-color: var(--salt-container-secondary-background);
+  border: 1px solid var(--salt-separable-secondary-borderColor);
+  border-radius: var(--salt-size-border-radius);
+  margin-bottom: var(--salt-spacing-200);
+}
+
+/* Call Grid Styles */
+.call-grid-container {
+  height: 100%;
+  width: 100%;
+}
+
+.call-grid-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--salt-content-secondary-foreground);
+}
+
+/* AG Grid Custom Styles */
+.salt-ag-grid-cell {
+  border-right: 1px solid var(--salt-separable-tertiary-borderColor);
+  padding: var(--salt-spacing-50);
+}
+
+.salt-ag-grid-cell.key-column {
+  background-color: var(--salt-container-accent-background);
+  font-weight: var(--salt-text-fontWeight-strong);
+}
+
+.salt-ag-grid-cell.status-pending {
+  color: var(--salt-status-warning-foreground);
+}
+
+.salt-ag-grid-cell.status-approved {
+  color: var(--salt-status-positive-foreground);
+}
+
+.salt-ag-grid-cell.status-disputed {
+  color: var(--salt-status-negative-foreground);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .call-management-container {
+    flex-direction: column;
+  }
+  
+  .panel-splitter {
+    height: 4px;
+    width: 100%;
+    cursor: row-resize;
+  }
+  
+  .metrics-grid-primary .saltFlexLayout {
+    flex-direction: column;
+  }
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+//app.js component
+// Updated App.js with CallManagement integration
+import React from 'react';
+import './index.css';
+import './App.css';
+import '@salt-ds/theme/index.css';
+import "@salt-ds/ag-grid-theme/salt-ag-theme.css";
+import '@salt-ds/icons/saltIcons.css';
+import '@jpmuitk/style/css/jpmuitk.css';
+import 'ag-grid-community/styles/ag-grid.css';
+
+// Import the new CallManagement components
+import CallManagementContainer from './callmanagement/components/CallManagementContainer';
+import { useTheme } from "@salt-ds/core";
+import {
+    DERIVATIVES_DEFAULT_COLUMNS_AS_BLOTTER,
+    CROSSMARGIN_COLUMNS,
+} from "./Constant";
+
+function App() {
+    const toCamelCase = str =>
+        str
+            .replace(/[^a-zA-Z0-9 ]/g, '')
+            .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) =>
+                index === 0 ? word.toLowerCase() : word.toUpperCase()
+            )
+            .replace(/\s+/g, '');
+
+    console.log("DERIVATIVES_DEFAULT_COLUMNS_AS_BLOTTER", DERIVATIVES_DEFAULT_COLUMNS_AS_BLOTTER);
+
+    const CROSSMARGIN_DEFAULT_COLUMNS = CROSSMARGIN_COLUMNS.map(col => ({
+        name: toCamelCase(col),
+        displayName: col
+    }));
+
+    const [columns, setColumns] = React.useState(DERIVATIVES_DEFAULT_COLUMNS_AS_BLOTTER);
+    const [activeProduct, setActiveProduct] = React.useState("DERIVATIVES");
+
+    const handleFieldChange = (fieldName, value, formState, tabIndex) => {
+        console.log(`Field ${fieldName} changed to ${value} on tab ${tabIndex}`);
+        console.log('Current form state:', formState);
+        
+        setActiveProduct(value);
+        
+        switch (value) {
+            case "DERIVATIVES":
+            case "PB":
+            case "GC":
+            case "FI-REPO":
+            case "TBA":
+            case "TCP":
+                setColumns(DERIVATIVES_DEFAULT_COLUMNS_AS_BLOTTER);
+                break;
+            case "CROSS MARGIN":
+                setColumns(CROSSMARGIN_DEFAULT_COLUMNS);
+                break;
+            default:
+                setColumns(DERIVATIVES_DEFAULT_COLUMNS_AS_BLOTTER);
+                break;
+        }
+    };
+
+    const { mode } = useTheme();
+
+    // API Configuration for your call management
+    const apiConfig = {
+        hostUrl: "http://localhost:92",
+        serviceEndPointPath: '/omcm/api/margincalls/v2/search',
+        httpMethod: "POST",
+        payload: {
+            "filter": [
+                {"property": "productType", "operator": "EQUALS", "value": activeProduct},
+                {"property": "nonCallDay", "operator": "EQUALS", "value": false},
+                {"property": "asOfDate", "operator": "GREATER_THAN_EQUALS", "value": "27-Aug-2025"},
+                {"property": "startDate", "operator": "GREATER_THAN_EQUALS", "value": "2025-08-27"},
+                {"property": "asOfDate", "operator": "LESS_THAN_EQUALS", "value": "27-Aug-2025"},
+                {"property": "endDate", "operator": "LESS_THAN_EQUALS", "value": "2025-08-27"},
+                {"property": "region", "operator": "EQUALS", "value": "AMERICA"}
+            ]
+        }
+    };
+
+    // Sample data for development/testing
+    const sampleData = [
+        {
+            callID: "MC-001-2025",
+            marginCallStatus: "Pending",
+            cobDate: "2025-08-27",
+            statementId: "STMT-001",
+            issueCallNotificationStatus: "Sent",
+            statementStatus: "Released",
+            goodOrder: "Yes",
+            agreementNumber: "AG-001",
+            version: "1",
+            sgoVersion: "1.0",
+            clientEntityName: "Client A Corp",
+            legalEntityName: "JPM Securities",
+            callNotificationTime: "2025-08-27T09:00:00Z",
+            excessDeficitInRPTCCY: -150000.50,
+            cPCallAmount: 150000.50,
+            repCCY: "USD",
+            agreedAmount: 0,
+            disputedAmount: 0,
+            vM: 75000.25,
+            iM: 75000.25,
+            collateralPosition: 140000.00,
+            cSR: "CSR1",
+            region: "AMERICA"
+        },
+        {
+            callID: "MC-002-2025",
+            marginCallStatus: "Disputed",
+            cobDate: "2025-08-27",
+            statementId: "STMT-002",
+            issueCallNotificationStatus: "Sent",
+            statementStatus: "Released",
+            goodOrder: "No",
+            agreementNumber: "AG-002",
+            version: "2",
+            sgoVersion: "1.1",
+            clientEntityName: "Client B Ltd",
+            legalEntityName: "JPM Chase Bank",
+            callNotificationTime: "2025-08-27T08:30:00Z",
+            excessDeficitInRPTCCY: -75000.00,
+            cPCallAmount: 75000.00,
+            repCCY: "USD",
+            agreedAmount: 25000.00,
+            disputedAmount: 50000.00,
+            vM: 40000.00,
+            iM: 35000.00,
+            collateralPosition: 60000.00,
+            cSR: "CSR2",
+            region: "AMERICA",
+            disputeReason: "Valuation Discrepancy",
+            disputeDiffAge: "3"
+        }
+    ];
+
+    const handleRowClick = (rowData) => {
+        console.log("Row clicked in Call Management:", rowData);
+    };
+
+    return (
+        <div className="App">
+            {/* Replace the commented WorkList with CallManagementContainer */}
+            <CallManagementContainer
+                columns={columns}
+                data={sampleData} // Use sampleData for testing, remove when API is ready
+                apiConfig={apiConfig}
+                onBlotterRowClick={handleRowClick}
+                theme={mode}
+                density="high"
+                // Pass through any additional props you need
+                onFieldChange={handleFieldChange}
+                loading={false}
+            />
+        </div>
+    );
+}
+
+export default App;
