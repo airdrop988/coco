@@ -1,0 +1,39 @@
+import React, { useCallback } from 'react';
+import CallGrid from './CallGrid';
+// import RightSidePanel from './RightSidePanel';
+import '../styles/callmanagement.css';
+
+const CallManagementContainer = ({ 
+  columns, 
+  data, 
+  onBlotterRowClick,
+  apiConfig,
+  theme,
+  ...restProps 
+}) => {
+  // Simplified state management - only keeping what's needed
+  
+  const handleRowClick = useCallback((rowData) => {
+    // Call parent callback if provided
+    if (onBlotterRowClick) {
+      onBlotterRowClick(rowData);
+    }
+  }, [onBlotterRowClick]);
+
+
+
+  // Directly render CallGrid without wrapper components for now
+  return (
+    <div className="call-management-container" style={{ height: '100%', width: '100%' }}>
+      <CallGrid
+        columns={columns}
+        data={data}
+        onRowClick={handleRowClick}
+        apiConfig={apiConfig}
+        {...restProps}
+      />
+    </div>
+  );
+};
+
+export default CallManagementContainer;
