@@ -1,0 +1,650 @@
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import { Panel, Text } from '@salt-ds/core';
+import 'ag-grid-community/styles/ag-grid.css';
+import '@salt-ds/ag-grid-theme/salt-ag-theme.css';
+
+const CallGrid = ({ 
+  columns, 
+  data, 
+  onRowClick, 
+  apiConfig,
+  loading = false,
+  ...restProps 
+}) => {
+  const [gridData, setGridData] = useState(data || []);
+  const [gridApi, setGridApi] = useState(null);
+  const [columnApi, setColumnApi] = useState(null);
+
+  // Grid configuration
+  const defaultColDef = useMemo(() => ({
+    sortable: true,
+    filter: true,
+    resizable: true,
+    flex: 1,
+    minWidth: 100,
+    cellClass: 'salt-ag-grid-cell',
+    // Enable grouping on all columns by default
+    enableRowGroup: true,
+    enableValue: true
+  }), []);
+
+  // Convert column definitions to AG Grid format
+  const columnDefs = useMemo(() => {
+    if (!columns) return [];
+    
+    // Add expand column as the first column
+    const expandColumn = {
+      headerName: '',
+      field: 'detail',
+      width: 60,
+      cellRenderer: 'agExpandCellRenderer',
+      cellRendererParams: {
+        suppressCount: true
+      },
+      enableRowGroup: false,
+      enableValue: false
+    };
+    
+    // Group column will be automatically created by AG Grid
+    
+    const baseColumns = columns.map(col => {
+      // Determine if this column should be used for row grouping
+      // Key columns like callID, clientEntityName or marginCallStatus are good candidates
+      const isGroupableColumn = col.isKey || 
+        ['clientEntityName', 'marginCallStatus', 'legalEntityName', 'region', 'repCCY', 'agreedAmount', 'disputedAmount'].includes(col.name);
+        
+      // Determine if this column should have aggregation functions
+      const isNumeric = col.name.includes('Amount') || 
+        col.name.includes('amount') || 
+        col.name.includes('vM') || 
+        col.name.includes('iM') || 
+        col.name.includes('deficit') ||
+        ['excessDeficitInRPTCCY', 'cPCallAmount', 'vM', 'iM', 'collateralPosition'].includes(col.name);
+        
+      // Don't make the detail column group-able
+      const enableRowGroup = col.name !== 'detail' && isGroupableColumn;
+      
+      // Set default row grouping if needed - don't set it by default anymore as we'll do it on grid ready
+      const isRowGroup = false;
+      
+      // Configure aggregation functions for numeric columns
+      const aggFunctions = isNumeric ? ['sum', 'avg', 'min', 'max'] : undefined;
+      
+      return {
+        headerName: col.displayName,
+        field: col.name,
+        sortable: true,
+        filter: true,
+        resizable: true,
+        // Enable/disable row grouping based on column type
+        enableRowGroup: enableRowGroup,
+        // Don't set default grouping here to avoid issues
+        rowGroup: isRowGroup,
+        hide: isRowGroup, // Only hide if used as row group
+        // Enable aggregation for numeric columns
+        enableValue: isNumeric,
+        aggFunc: isNumeric ? 'sum' : undefined, // Default to sum for numeric values
+        allowedAggFuncs: aggFunctions,
+        cellRenderer: (params) => {
+          // Custom cell rendering for specific field types
+          if (col.name.includes('Amount') || col.name.includes('amount')) {
+            const value = params.value;
+            if (value && !isNaN(value)) {
+              const formatted = new Intl.NumberFormat('en-US', {
+                style: 'decimal',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              }).format(value);
+              return `${formatted}`;
+            }
+          }
+          
+          if (col.name.includes('Time') || col.name.includes('Date')) {
+            const value = params.value;
+            if (value) {
+              try {
+                const date = new Date(value);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+              } catch (e) {
+                return value;
+              }
+            }
+          }
+
+          return params.value || '';
+        },
+        cellClass: (params) => {
+          let classes = ['salt-ag-grid-cell'];
+          
+          // Add status-based styling
+          if (col.name === 'marginCallStatus') {
+            const status = params.value?.toLowerCase();
+            if (status === 'pending') classes.push('status-pending');
+            if (status === 'approved') classes.push('status-approved');
+            if (status === 'disputed') classes.push('status-disputed');
+          }
+
+          // Highlight key columns
+          if (col.isKey) {
+            classes.push('key-column');
+          }
+
+          return classes.join(' ');
+        },
+        width: col.width || undefined,
+        pinned: col.pinned || null
+      };
+    });
+
+    // Add expand column as first column and include groupColumn when grouping is active
+    return [expandColumn, ...baseColumns];
+  }, [columns]);
+
+  // Handle grid ready
+  const onGridReady = useCallback((params) => {
+    // Set grid API for future reference
+    setGridApi(params.api);
+    setColumnApi(params.columnApi);
+    
+    // Auto-size columns
+    params.api.sizeColumnsToFit();
+    
+    // Initialize with default grouping if specified
+    if (params.columnApi && columns.length > 0) {
+      // Set up default grouping
+      const statusColumnName = 'marginCallStatus';
+      
+      // Check if the status column exists
+      const hasStatusColumn = columns.some(col => col.name === statusColumnName);
+      if (hasStatusColumn) {
+        console.log('Setting up default row grouping by:', statusColumnName);
+        
+        // Apply default grouping by marginCallStatus
+        params.columnApi.applyColumnState({
+          state: [
+            { colId: statusColumnName, rowGroup: true, hide: true }
+          ]
+        });
+        
+        // Set up value columns for aggregation
+        const aggColumns = columns
+          .filter(col => 
+            col.name.includes('Amount') || 
+            col.name.includes('amount') || 
+            col.name.includes('vM') || 
+            ['excessDeficitInRPTCCY', 'cPCallAmount'].includes(col.name)
+          )
+          .map(col => col.name);
+          
+        if (aggColumns.length > 0) {
+          // Apply aggregation to value columns
+          const aggState = aggColumns.map(colId => ({
+            colId,
+            aggFunc: 'sum'
+          }));
+          
+          params.columnApi.applyColumnState({
+            state: aggState,
+            defaultState: { aggFunc: null }
+          });
+        }
+      }
+    }
+  }, [columns]);
+
+  // Handle row selection
+  const onRowClicked = useCallback((event) => {
+    const rowData = event.data;
+    if (onRowClick) {
+      onRowClick(rowData);
+    }
+  }, [onRowClick]);
+  
+  // Handle column state changes including grouping
+  const onColumnRowGroupChanged = useCallback((event) => {
+    if (columnApi) {
+      // Get current row group columns
+      const rowGroupCols = columnApi.getRowGroupColumns();
+      console.log('Row grouping changed:', rowGroupCols.map(col => col.getColId()));
+      
+      // Prepare column state updates
+      const columnState = [];
+      
+      // Hide columns that are used for grouping
+      rowGroupCols.forEach(col => {
+        columnState.push({ colId: col.getColId(), hide: true });
+      });
+      
+      // Show columns that are no longer used for grouping
+      const allColumns = columnApi.getAllGridColumns();
+      allColumns.forEach(col => {
+        const colId = col.getColId();
+        const isRowGroupCol = rowGroupCols.some(groupCol => groupCol.getColId() === colId);
+        if (!isRowGroupCol && colId !== 'detail' && !col.isRowGroupActive()) {
+          columnState.push({ colId, hide: false });
+        }
+      });
+      
+      // Apply all column state changes at once for better performance
+      if (columnState.length > 0) {
+        columnApi.applyColumnState({ state: columnState });
+      }
+      
+      // Force refresh to ensure proper rendering
+      if (gridApi) {
+        gridApi.refreshCells({ force: true });
+      }
+    }
+  }, [columnApi, gridApi]);
+
+  // Fetch data from API if configuration is provided
+  const fetchData = useCallback(async () => {
+    if (!apiConfig) return;
+
+    try {
+      const { hostUrl, serviceEndPointPath, httpMethod = 'GET', payload } = apiConfig;
+      const url = `${hostUrl}${serviceEndPointPath}`;
+      
+      const options = {
+        method: httpMethod,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      };
+
+      if (httpMethod === 'POST' && payload) {
+        options.body = JSON.stringify(payload);
+      }
+
+      const response = await fetch(url, options);
+      const result = await response.json();
+      
+      // Handle different response formats
+      let dataArray = [];
+      if (Array.isArray(result)) {
+        dataArray = result;
+      } else if (result.data && Array.isArray(result.data)) {
+        dataArray = result.data;
+      } else if (result.content && Array.isArray(result.content)) {
+        dataArray = result.content;
+      }
+
+      setGridData(dataArray);
+    } catch (error) {
+      console.error('Error fetching grid data:', error);
+      setGridData([]);
+    }
+  }, [apiConfig]);
+
+  // Update data when props change
+  useEffect(() => {
+    if (data && Array.isArray(data)) {
+      setGridData(data);
+      
+      // When data changes, maintain the grouping state
+      if (gridApi && columnApi) {
+        // Get current grouping state
+        const currentRowGroupCols = columnApi.getRowGroupColumns();
+        
+        // If no grouping is set and we have columns, set default grouping
+        if (currentRowGroupCols.length === 0 && columns && columns.length > 0) {
+          const statusColumn = columns.find(col => col.name === 'marginCallStatus');
+          if (statusColumn) {
+            console.log('Setting default row grouping after data change');
+            columnApi.applyColumnState({
+              state: [
+                { colId: 'marginCallStatus', rowGroup: true, hide: true }
+              ]
+            });
+          }
+        }
+        
+        // Refresh the grid to properly display the grouped data
+        gridApi.refreshCells({ force: true });
+      }
+    } else if (apiConfig) {
+      fetchData();
+    }
+  }, [data, apiConfig, fetchData, gridApi, columnApi, columns]);
+  
+  // Add CSS for the detail view and row grouping
+  useEffect(() => {
+    // Add CSS for the detail view and row grouping if it doesn't exist
+    if (!document.getElementById('call-grid-styles')) {
+      const style = document.createElement('style');
+      style.id = 'call-grid-styles';
+      style.innerHTML = `
+        /* Salt-specific styles for AG Grid */
+        .salt-ag-theme {
+          --grid-border-color: var(--salt-separable-tertiary-borderColor, #e0e0e0);
+          --grid-row-border-color: var(--salt-separable-secondary-borderColor, #eeeeee);
+          --grid-odd-row-background: var(--salt-container-primary-background, #ffffff);
+          --grid-even-row-background: var(--salt-container-secondary-background, #fafafa);
+          --grid-header-background: var(--salt-container-secondary-background, #f5f5f5);
+          --grid-header-foreground: var(--salt-text-secondary-foreground, #505050);
+          --grid-row-hover-background: var(--salt-selectable-background-hover, #f0f0f0);
+          --grid-group-row-background: var(--salt-container-secondary-background-selected, #ebf1f9);
+        }
+        
+        .detail-panel {
+          padding: 15px;
+          box-sizing: border-box;
+          border-top: 1px solid #ddd;
+          background-color: #f5f5f5;
+        }
+        .detail-container {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 20px;
+        }
+        .detail-items, .detail-history {
+          flex: 1;
+          min-width: 300px;
+        }
+        .detail-table, .history-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+        .detail-table th, .detail-table td,
+        .history-table th, .history-table td {
+          padding: 8px;
+          border: 1px solid #ddd;
+          text-align: left;
+        }
+        .detail-table th, .history-table th {
+          background-color: #eee;
+        }
+        .no-detail {
+          padding: 10px;
+          color: #666;
+          font-style: italic;
+        }
+        
+        /* Row Group Panel Styles - Based on Salt Design System */
+        .salt-ag-theme .ag-column-drop-row-group {
+          background-color: var(--salt-container-primary-background);
+          min-height: 45px;
+          padding: 8px;
+          border-bottom: 1px solid var(--salt-separable-tertiary-borderColor);
+        }
+        
+        .salt-ag-theme .ag-column-drop-cell {
+          margin: 2px;
+          padding: 0 8px;
+          background-color: var(--salt-selectable-background);
+          border: 1px solid var(--salt-container-secondary-borderColor);
+          border-radius: 4px;
+          height: 30px;
+        }
+        
+        .salt-ag-theme .ag-column-drop-cell-text {
+          font-size: 14px;
+          font-weight: 500;
+          margin-right: 8px;
+        }
+        
+        /* Group Row Styles */
+        .salt-ag-theme .ag-full-width-row {
+          background-color: var(--salt-container-secondary-background);
+          border-bottom: 1px solid var(--salt-separable-tertiary-borderColor);
+        }
+        
+        .salt-ag-theme .ag-row-group {
+          font-weight: 600;
+          background-color: var(--salt-container-secondary-background);
+        }
+        
+        .salt-ag-theme .ag-row-group-expanded .ag-group-value,
+        .salt-ag-theme .ag-row-group-contracted .ag-group-value {
+          color: var(--salt-text-primary-foreground);
+        }
+        
+        /* Improve expand/collapse icons */
+        .salt-ag-theme .ag-group-expanded .ag-icon,
+        .salt-ag-theme .ag-group-contracted .ag-icon {
+          color: var(--salt-actionable-primary-foreground);
+        }
+        
+        /* Add specific styling for different status groups */
+        .salt-ag-theme .ag-row[row-index="0"] .ag-cell[col-id="marginCallStatus"][value="Pending"] {
+          background-color: #fff8e1;
+          color: #856404;
+        }
+        
+        .salt-ag-theme .ag-row[row-index="0"] .ag-cell[col-id="marginCallStatus"][value="Approved"] {
+          background-color: #e8f5e9;
+          color: #155724;
+        }
+        
+        .salt-ag-theme .ag-row[row-index="0"] .ag-cell[col-id="marginCallStatus"][value="Disputed"] {
+          background-color: #ffebee;
+          color: #721c24;
+        }
+        
+        /* Fix row group panel appearance */
+        .salt-ag-theme .ag-row-group-panel {
+          border-bottom: 1px solid var(--salt-separable-tertiary-borderColor);
+          padding: 8px;
+          display: flex;
+          align-items: center;
+          background-color: var(--salt-container-secondary-background);
+        }
+        
+        .salt-ag-theme .ag-row-group-panel-label {
+          margin-right: 8px;
+          font-weight: 500;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+  
+  // Detail Cell Renderer component for expandable rows
+  const DetailCellRenderer = useCallback((props) => {
+    const { data } = props;
+    
+    if (!data.detail) {
+      return <div className="no-detail">No detail information available</div>;
+    }
+    
+    // Render items in a nested table if they exist
+    const renderItems = () => {
+      if (!data.detail.items || !data.detail.items.length) return null;
+      
+      return (
+        <div className="detail-items">
+          <h4>Related Items</h4>
+          <table className="detail-table">
+            <thead>
+              <tr>
+                <th>Call ID</th>
+                <th>Status</th>
+                <th>Client</th>
+                <th>Call Amount</th>
+                <th>Currency</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.detail.items.map(item => (
+                <tr key={item.callID}>
+                  <td>{item.callID}</td>
+                  <td>{item.marginCallStatus}</td>
+                  <td>{item.clientEntityName}</td>
+                  <td>{new Intl.NumberFormat('en-US', {
+                    style: 'decimal',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  }).format(item.cPCallAmount)}</td>
+                  <td>{item.repCCY}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    };
+    
+    // Render history if it exists
+    const renderHistory = () => {
+      if (!data.detail.history || !data.detail.history.length) return null;
+      
+      return (
+        <div className="detail-history">
+          <h4>Call History</h4>
+          <table className="history-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Action</th>
+                <th>User</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.detail.history.map((event, index) => (
+                <tr key={index}>
+                  <td>{event.date}</td>
+                  <td>{event.action}</td>
+                  <td>{event.user}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    };
+    
+    return (
+      <div className="detail-panel">
+        <div className="detail-container">
+          {renderItems()}
+          {renderHistory()}
+        </div>
+      </div>
+    );
+  }, []);
+
+  // This CSS is now handled by the comprehensive call-grid-styles effect
+  
+  if (!columns || columns.length === 0) {
+    return (
+      <Panel className="call-grid-empty">
+        <Text>No columns configured for display</Text>
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel className="call-grid-container">
+      {/* Use the salt-ag-theme class which is already imported */}
+      <div className="salt-ag-theme" style={{ height: '100%', width: '100%' }}>
+        <AgGridReact
+          columnDefs={columnDefs}
+          rowData={gridData}
+          defaultColDef={defaultColDef}
+          onGridReady={onGridReady}
+          onRowClicked={onRowClicked}
+          onColumnRowGroupChanged={onColumnRowGroupChanged}
+          rowSelection="single"
+          animateRows={true}
+          enableCellTextSelection={true}
+          suppressRowDeselection={false}
+          rowHeight={35}
+          headerHeight={40}
+          suppressMenuHide={false}
+          suppressColumnVirtualisation={false}
+          suppressRowVirtualisation={false}
+          enableRangeSelection={true}
+          enableFillHandle={true}
+          undoRedoCellEditing={true}
+          loading={loading}
+          loadingOverlayComponent={() => <span className='ag-overlay-loading-center'>Loading...</span>}
+          noRowsOverlayComponent={() => <span className='ag-overlay-no-rows-center'>No data available</span>}
+          
+          // Row Grouping configuration
+          rowGroupPanelShow="always"
+          groupDisplayType="groupRows"
+          groupDefaultExpanded={1}
+          suppressAggFuncInHeader={false}
+          suppressMakeColumnVisibleAfterUnGroup={true}
+          
+          // Enhanced group column definition
+          autoGroupColumnDef={{
+            headerName: 'Group',
+            minWidth: 250,
+            flex: 1,
+            sortable: true,
+            resizable: true,
+            filter: true,
+            cellClass: 'salt-ag-grid-cell',
+            cellRenderer: 'agGroupCellRenderer',
+            cellRendererParams: {
+              suppressCount: false,
+              checkbox: false,
+              innerRenderer: params => {
+                // Apply custom styling based on group value
+                const value = params.value || '';
+                let displayValue = value;
+                
+                // Add status indicators for status groups
+                if (params.node.field === 'marginCallStatus') {
+                  let statusClass = '';
+                  let statusIcon = '●';
+                  
+                  if (value.toLowerCase() === 'pending') {
+                    statusClass = 'status-pending';
+                    statusIcon = '⦿';  // Different icon for pending
+                  } else if (value.toLowerCase() === 'approved') {
+                    statusClass = 'status-approved';
+                    statusIcon = '✓';  // Checkmark for approved
+                  } else if (value.toLowerCase() === 'disputed') {
+                    statusClass = 'status-disputed';
+                    statusIcon = '!';  // Exclamation for disputed
+                  }
+                  
+                  if (statusClass) {
+                    displayValue = `${statusIcon} ${value}`;
+                  }
+                }
+                
+                return displayValue;
+              }
+            }
+          }}
+          
+          // Enable tools panel with column management
+          sideBar={{
+            toolPanels: [
+              {
+                id: 'columns',
+                labelDefault: 'Columns',
+                labelKey: 'columns',
+                iconKey: 'columns',
+                toolPanel: 'agColumnsToolPanel',
+                toolPanelParams: {
+                  suppressRowGroups: false,
+                  suppressValues: false,
+                  suppressPivots: true,
+                  suppressPivotMode: true,
+                  suppressColumnFilter: false,
+                  suppressColumnSelectAll: false,
+                  suppressColumnExpandAll: false
+                }
+              }
+            ],
+            defaultToolPanel: ''
+          }}
+          
+          // Master detail configuration
+          masterDetail={true}
+          detailCellRenderer={DetailCellRenderer}
+          detailRowHeight={300}
+          
+          {...restProps}
+        />
+      </div>
+    </Panel>
+  );
+};
+
+export default CallGrid;
