@@ -1,0 +1,29 @@
+# Folder structure for callmanagement components
+src/
+├── callmanagement/
+│   ├── components/
+│   │   ├── CallManagementContainer.jsx
+│   │   ├── RightSidePanel/
+│   │   │   ├── index.jsx
+│   │   │   ├── RightSidePanel.jsx
+│   │   │   ├── DetailsTab.jsx
+│   │   │   ├── ActionTab.jsx
+│   │   │   ├── PanelHeader.jsx
+│   │   │   └── RightSidePanel.module.css
+│   │   ├── CallGrid/
+│   │   │   ├── index.jsx
+│   │   │   ├── CallGrid.jsx
+│   │   │   └── CallGrid.module.css
+│   │   └── MetricsDisplay/
+│   │       ├── index.jsx
+│   │       ├── MetricsDisplay.jsx
+│   │       └── MetricsDisplay.module.css
+│   ├── hooks/
+│   │   ├── useCallData.js
+│   │   ├── usePanelResize.js
+│   │   └── useCallSelection.js
+│   ├── utils/
+│   │   ├── dataTransformers.js
+│   │   └── constants.js
+│   └── styles/
+│       └── callmanagement.css
