@@ -1,9 +1,9 @@
-import { FormContext, Button } from '@admin-ui/form-js';
-import { useContext } from 'react/hooks';
-import { html } from 'htm/react';
-import '@/styles-button-me/define';
-import '@/styles-icon-me/define';
-import { iconType } from '@admin-ui/form-js';
+import { FormContext, Button } from '@bpmn-io/form-js';
+import { useContext } from "preact/hooks";
+import { html } from "htm/preact";
+import '@cof/gds-button-wc/define';
+import '@cof/gds-icon-wc/define';
+import { iconsByType } from '@bpmn-io/form-js';
 
 export const gravityButtonIdType = 'gravityButtonField';
 
