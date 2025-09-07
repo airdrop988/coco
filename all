@@ -46,19 +46,11 @@ export function GravityButtonRenderer(props) {
     apiUrl,
     onClickType,
     methodName,
-    disabledWithFormValid = true,
+    disabledWithFormValid = false,
     id
   } = field;
 
   const { formId, formData } = useContext(FormContext);
-
-  const isFormValid = () => {
-    if (!disabledWithFormValid) return true;
-    const data = formData || {};
-    return Object.keys(data).some(key => (
-      data[key] !== null && data[key] !== undefined && data[key] !== ''
-    ));
-  };
 
   const callDownloadMethod = async (methodName, ...args) => {
     try {
@@ -203,7 +195,7 @@ export function GravityButtonRenderer(props) {
   };
 
   const prefixedLabel = prefix ? `${prefix} ${label}` : label;
-  const isDisabled = disabled || (disabledWithFormValid && !isFormValid()) || readonly;
+  const isDisabled = disabled || field.disabled || readonly;
 
   const getIconSize = () => {
     switch (size) {
@@ -215,7 +207,7 @@ export function GravityButtonRenderer(props) {
 
   return html`
     <div
-      className="gravity-button-container"
+      className="gravity-button-container ${prefixField(id, formId)}"
       style=${{
         display: 'flex',
         flexDirection: 'column',
@@ -225,69 +217,58 @@ export function GravityButtonRenderer(props) {
         alignItems: fullWidth ? 'stretch' : 'flex-start'
       }}
     >
-      
-      <gs-button
+      <gds-button
+        type="${buttonType}"
+        rank="${rank}"
+        size="${size}"
+        appearance="${appearance}"
+        ?readonly="${readonly}"
+        ?disabled="${isDisabled}"
+        ?loading="${loading}"
+        iconLeft="${iconLeft}"
+        textFieldButton="${textFieldButton}"
+        name="${name || undefined}"
+        value="${value || undefined}"
+        href="${href || undefined}"
+        target="${target || undefined}"
+        rel="${rel || undefined}"
+        @click="${onClick}"
         style=${{
           cursor: isDisabled ? 'not-allowed' : 'pointer',
           width: fullWidth ? '100%' : 'auto',
           minWidth: 'fit-content',
-          border: rank === 'outline' ? '1px solid' : 'none',
           display: fullWidth ? 'block' : 'inline-block'
         }}
       >
-        <style>
-          .gravity-button-container.${prefixField(id, formId)} gs-button {
-            opacity: ${isDisabled ? '0.6' : '1'};
-          }
-          
-          .gravity-button-container.${prefixField(id, formId)} .button-description {
-            font-size: 14px;
-            color: #666;
-            margin-top: 4px;
-          }
-        </style>
-        
-        <gs-button
-          type="${buttonType}"
-          rank="${rank}"
-          size="${size}"
-          appearance="${appearance}"
-          ?readonly="${readonly}"
-          ?disabled="${isDisabled}"
-          ?loading="${loading}"
-          iconLeft="${iconLeft}"
-          ?downloading="${loading}"
-          textFieldButton="${textFieldButton}"
-          name="${name || undefined}"
-          value="${value || undefined}"
-          ?validateOnLabel="${validateOnLabel || undefined}"
-          href="${href || undefined}"
-          ?download="${download || undefined}"
-          target="${target || undefined}"
-          rel="${rel || undefined}"
-          onClick="${onClick}"
-          className="${fullWidth ? 'full-width-button' : ''}"
-          style="${fullWidth ? 'width: 100%; display: block;' : ''}"
+        ${iconLeft && iconName && html`
+          <gds-icon 
+            name="${iconName}" 
+            size="${getIconSize()}"
+            slot="icon-left"
+          ></gds-icon>
+        `}
+        ${prefixedLabel}
+        ${!iconLeft && iconName && html`
+          <gds-icon 
+            name="${iconName}" 
+            size="${getIconSize()}"
+            slot="icon-right"
+          ></gds-icon>
+        `}
+      </gds-button>
+      
+      ${description && html`
+        <div 
+          className="button-description"
+          style=${{
+            fontSize: '14px',
+            color: '#666',
+            marginTop: '4px'
+          }}
         >
-          ${iconLeft && iconName && html`
-            <gb-icon 
-              name="${iconName}" 
-              size="${getIconSize()}" 
-              color="currentColor"
-            />
-          `}
-          ${prefixedLabel}
-          ${!iconLeft && iconName && html`
-            <gb-icon 
-              name="${iconName}" 
-              size="${getIconSize()}" 
-              color="currentColor"
-            />
-          `}
-        </gs-button>
-        
-        ${description && html`<div className="button-description">${description}</div>`}
-      </gs-button>
+          ${description}
+        </div>
+      `}
     </div>
   `;
 }
@@ -299,8 +280,6 @@ GravityButtonRenderer.config = {
   name: 'Button',
   group: 'gravity',
   iconName: 'icon-button',
-  keyof: true,
-  ariaLabelledBy: true,
   properties: {
     textfield: {
       label: 'Field label',
@@ -335,7 +314,7 @@ GravityButtonRenderer.config = {
     readonly: false,
     apiUrl: '',
     onClickType: '',
-    disabledWithFormValid: true,
+    disabledWithFormValid: false,
     methodName: '',
     id: options.id || `gravity-button-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     ...options
