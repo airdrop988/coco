@@ -249,10 +249,12 @@ export function GravityButtonRenderer(props) {
         
         <gs-button
           type="${buttonType}"
+          rank="${rank}"
+          size="${size}"
+          appearance="${appearance}"
           ?readonly="${readonly}"
           ?disabled="${isDisabled}"
-          appearance="${appearance}"
-          loading="${loading}"
+          ?loading="${loading}"
           iconLeft="${iconLeft}"
           ?downloading="${loading}"
           textFieldButton="${textFieldButton}"
