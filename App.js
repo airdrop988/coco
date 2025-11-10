@@ -23,11 +23,14 @@ describe('ObjectOverviewComponent', () => {
   };
 
   beforeEach(async () => {
-    // Create spy objects for services
-    mockIdentityService = jasmine.createSpyObj('IdentityService', ['getUser']);
-    mockGovernedObjectService = jasmine.createSpyObj('GovernedObjectService', [
-      'getGovernedObjectByUuid'
-    ]);
+    // Create mock service objects
+    mockIdentityService = {
+      getUser: jest.fn()
+    };
+
+    mockGovernedObjectService = {
+      getGovernedObjectByUuid: jest.fn()
+    };
 
     // Mock ActivatedRoute with params observable
     mockActivatedRoute = {
@@ -50,7 +53,9 @@ describe('ObjectOverviewComponent', () => {
   });
 
   afterEach(() => {
-    fixture.destroy();
+    if (fixture) {
+      fixture.destroy();
+    }
   });
 
   describe('Component Initialization', () => {
@@ -88,8 +93,8 @@ describe('ObjectOverviewComponent', () => {
 
   describe('ngOnInit', () => {
     it('should call identityService.getUser on initialization', () => {
-      mockIdentityService.getUser.and.returnValue('John Doe');
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockIdentityService.getUser.mockReturnValue('John Doe');
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         of(mockGovernedObject)
       );
 
@@ -100,8 +105,8 @@ describe('ObjectOverviewComponent', () => {
     });
 
     it('should set governedObjectUuid from route params', () => {
-      mockIdentityService.getUser.and.returnValue('John Doe');
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockIdentityService.getUser.mockReturnValue('John Doe');
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         of(mockGovernedObject)
       );
 
@@ -111,11 +116,11 @@ describe('ObjectOverviewComponent', () => {
     });
 
     it('should call fetchGovernedObject when governedObjectUuid is present in route params', () => {
-      mockIdentityService.getUser.and.returnValue('John Doe');
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockIdentityService.getUser.mockReturnValue('John Doe');
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         of(mockGovernedObject)
       );
-      spyOn(component, 'fetchGovernedObject');
+      jest.spyOn(component, 'fetchGovernedObject');
 
       component.ngOnInit();
 
@@ -124,8 +129,8 @@ describe('ObjectOverviewComponent', () => {
 
     it('should not call fetchGovernedObject when governedObjectUuid is not present in route params', () => {
       mockActivatedRoute.params = of({});
-      mockIdentityService.getUser.and.returnValue('John Doe');
-      spyOn(component, 'fetchGovernedObject');
+      mockIdentityService.getUser.mockReturnValue('John Doe');
+      jest.spyOn(component, 'fetchGovernedObject');
 
       component.ngOnInit();
 
@@ -134,8 +139,8 @@ describe('ObjectOverviewComponent', () => {
 
     it('should handle empty governedObjectUuid in route params', () => {
       mockActivatedRoute.params = of({ governedObjectUuid: '' });
-      mockIdentityService.getUser.and.returnValue('John Doe');
-      spyOn(component, 'fetchGovernedObject');
+      mockIdentityService.getUser.mockReturnValue('John Doe');
+      jest.spyOn(component, 'fetchGovernedObject');
 
       component.ngOnInit();
 
@@ -145,8 +150,8 @@ describe('ObjectOverviewComponent', () => {
 
     it('should handle null governedObjectUuid in route params', () => {
       mockActivatedRoute.params = of({ governedObjectUuid: null });
-      mockIdentityService.getUser.and.returnValue('John Doe');
-      spyOn(component, 'fetchGovernedObject');
+      mockIdentityService.getUser.mockReturnValue('John Doe');
+      jest.spyOn(component, 'fetchGovernedObject');
 
       component.ngOnInit();
 
@@ -157,7 +162,7 @@ describe('ObjectOverviewComponent', () => {
 
   describe('fetchGovernedObject', () => {
     it('should call governedObjectService.getGovernedObjectByUuid with correct uuid', () => {
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         of(mockGovernedObject)
       );
 
@@ -168,74 +173,69 @@ describe('ObjectOverviewComponent', () => {
       );
     });
 
-    it('should set description from response when governedObjectDescription is present', (done) => {
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+    it('should set description from response when governedObjectDescription is present', async () => {
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         of(mockGovernedObject)
       );
 
       component.fetchGovernedObject('test-uuid-123');
 
-      setTimeout(() => {
-        expect(component.description).toBe('Test description for governed object');
-        done();
-      }, 0);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(component.description).toBe('Test description for governed object');
     });
 
-    it('should set description to empty string when governedObjectDescription is missing', (done) => {
+    it('should set description to empty string when governedObjectDescription is missing', async () => {
       const objectWithoutDescription: any = {
         governedObjectUuid: mockGovernedObject.governedObjectUuid,
         governedObjectName: mockGovernedObject.governedObjectName,
         status: mockGovernedObject.status
       };
 
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         of(objectWithoutDescription)
       );
 
       component.fetchGovernedObject('test-uuid-123');
 
-      setTimeout(() => {
-        expect(component.description).toBe('');
-        done();
-      }, 0);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(component.description).toBe('');
     });
 
-    it('should set description to empty string when governedObjectDescription is null', (done) => {
+    it('should set description to empty string when governedObjectDescription is null', async () => {
       const objectWithNullDescription = {
         ...mockGovernedObject,
         governedObjectDescription: null
       };
 
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         of(objectWithNullDescription)
       );
 
       component.fetchGovernedObject('test-uuid-123');
 
-      setTimeout(() => {
-        expect(component.description).toBe('');
-        done();
-      }, 0);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(component.description).toBe('');
     });
 
     it('should handle error when fetching governed object fails', () => {
       const errorResponse = { status: 404, message: 'Not found' };
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         throwError(() => errorResponse)
       );
-      spyOn(console, 'error');
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
       component.fetchGovernedObject('test-uuid-123');
 
-      expect(console.error).toHaveBeenCalledWith(
+      expect(consoleSpy).toHaveBeenCalledWith(
         'Error fetching governed object:',
         errorResponse
       );
+      consoleSpy.mockRestore();
     });
 
     it('should not modify description when error occurs', () => {
       component.description = 'Initial description';
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         throwError(() => new Error('Network error'))
       );
 
@@ -246,32 +246,34 @@ describe('ObjectOverviewComponent', () => {
 
     it('should handle 500 server error', () => {
       const serverError = { status: 500, message: 'Internal server error' };
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         throwError(() => serverError)
       );
-      spyOn(console, 'error');
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
       component.fetchGovernedObject('test-uuid-123');
 
-      expect(console.error).toHaveBeenCalledWith(
+      expect(consoleSpy).toHaveBeenCalledWith(
         'Error fetching governed object:',
         serverError
       );
+      consoleSpy.mockRestore();
     });
 
     it('should handle network timeout error', () => {
       const timeoutError = { status: 0, message: 'Timeout' };
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         throwError(() => timeoutError)
       );
-      spyOn(console, 'error');
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
       component.fetchGovernedObject('test-uuid-123');
 
-      expect(console.error).toHaveBeenCalledWith(
+      expect(consoleSpy).toHaveBeenCalledWith(
         'Error fetching governed object:',
         timeoutError
       );
+      consoleSpy.mockRestore();
     });
   });
 
@@ -324,28 +326,26 @@ describe('ObjectOverviewComponent', () => {
   });
 
   describe('Integration Tests', () => {
-    it('should complete full initialization flow with valid route params', (done) => {
-      mockIdentityService.getUser.and.returnValue('Jane Smith');
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+    it('should complete full initialization flow with valid route params', async () => {
+      mockIdentityService.getUser.mockReturnValue('Jane Smith');
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         of(mockGovernedObject)
       );
 
       component.ngOnInit();
 
-      setTimeout(() => {
-        expect(component.userName).toBe('Jane Smith');
-        expect(component.governedObjectUuid).toBe('test-uuid-123');
-        expect(component.description).toBe('Test description for governed object');
-        expect(mockGovernedObjectService.getGovernedObjectByUuid).toHaveBeenCalledWith(
-          'test-uuid-123'
-        );
-        done();
-      }, 0);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(component.userName).toBe('Jane Smith');
+      expect(component.governedObjectUuid).toBe('test-uuid-123');
+      expect(component.description).toBe('Test description for governed object');
+      expect(mockGovernedObjectService.getGovernedObjectByUuid).toHaveBeenCalledWith(
+        'test-uuid-123'
+      );
     });
 
     it('should handle initialization without route params gracefully', () => {
       mockActivatedRoute.params = of({});
-      mockIdentityService.getUser.and.returnValue('John Doe');
+      mockIdentityService.getUser.mockReturnValue('John Doe');
 
       component.ngOnInit();
 
@@ -357,7 +357,7 @@ describe('ObjectOverviewComponent', () => {
 
   describe('Edge Cases', () => {
     it('should handle undefined user from identityService', () => {
-      mockIdentityService.getUser.and.returnValue(undefined as any);
+      mockIdentityService.getUser.mockReturnValue(undefined as any);
       mockActivatedRoute.params = of({});
 
       component.ngOnInit();
@@ -366,7 +366,7 @@ describe('ObjectOverviewComponent', () => {
     });
 
     it('should handle empty string user from identityService', () => {
-      mockIdentityService.getUser.and.returnValue('');
+      mockIdentityService.getUser.mockReturnValue('');
       mockActivatedRoute.params = of({});
 
       component.ngOnInit();
@@ -374,47 +374,43 @@ describe('ObjectOverviewComponent', () => {
       expect(component.userName).toBe('');
     });
 
-    it('should handle special characters in governedObjectDescription', (done) => {
+    it('should handle special characters in governedObjectDescription', async () => {
       const specialCharObject = {
         ...mockGovernedObject,
         governedObjectDescription: 'Test <script>alert("xss")</script> & special chars © ™'
       };
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         of(specialCharObject)
       );
 
       component.fetchGovernedObject('test-uuid-123');
 
-      setTimeout(() => {
-        expect(component.description).toBe(
-          'Test <script>alert("xss")</script> & special chars © ™'
-        );
-        done();
-      }, 0);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(component.description).toBe(
+        'Test <script>alert("xss")</script> & special chars © ™'
+      );
     });
 
-    it('should handle very long governedObjectDescription', (done) => {
+    it('should handle very long governedObjectDescription', async () => {
       const longDescription = 'A'.repeat(10000);
       const longDescObject = {
         ...mockGovernedObject,
         governedObjectDescription: longDescription
       };
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         of(longDescObject)
       );
 
       component.fetchGovernedObject('test-uuid-123');
 
-      setTimeout(() => {
-        expect(component.description).toBe(longDescription);
-        expect(component.description.length).toBe(10000);
-        done();
-      }, 0);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(component.description).toBe(longDescription);
+      expect(component.description.length).toBe(10000);
     });
 
     it('should handle UUID with special characters', () => {
       const specialUuid = 'uuid-with-special-chars-!@#$%';
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         of(mockGovernedObject)
       );
 
@@ -428,8 +424,8 @@ describe('ObjectOverviewComponent', () => {
 
   describe('Component Template Rendering', () => {
     it('should render without errors', () => {
-      mockIdentityService.getUser.and.returnValue('Test User');
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockIdentityService.getUser.mockReturnValue('Test User');
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         of(mockGovernedObject)
       );
 
@@ -448,15 +444,17 @@ describe('ObjectOverviewComponent', () => {
 
   describe('Memory Leak Prevention', () => {
     it('should unsubscribe from route params on component destroy', () => {
-      mockIdentityService.getUser.and.returnValue('Test User');
-      mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
+      mockIdentityService.getUser.mockReturnValue('Test User');
+      mockGovernedObjectService.getGovernedObjectByUuid.mockReturnValue(
         of(mockGovernedObject)
       );
 
-      const subscription = jasmine.createSpy('subscription');
-      spyOn(mockActivatedRoute.params, 'subscribe').and.returnValue({
-        unsubscribe: subscription
-      } as any);
+      const unsubscribeSpy = jest.fn();
+      const mockSubscription = {
+        unsubscribe: unsubscribeSpy
+      };
+      
+      jest.spyOn(mockActivatedRoute.params, 'subscribe').mockReturnValue(mockSubscription as any);
 
       component.ngOnInit();
       fixture.destroy();
