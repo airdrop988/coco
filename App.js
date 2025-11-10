@@ -2,17 +2,17 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { ObjectOverviewComponent } from './object-overview.component';
-import { IdentityService } from '@services/identity.service';
-import { GovernedObjectService } from '@services/governed-object.service';
-import { TaskDataService } from '@services/task-data.service';
+import { IdentityService } from '../../services/identity.service';
+import { GovernedObjectService } from '../../services/governed-object.service';
+import { TaskDataService } from '../../services/task-data.service';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 describe('ObjectOverviewComponent', () => {
   let component: ObjectOverviewComponent;
   let fixture: ComponentFixture<ObjectOverviewComponent>;
-  let mockIdentityService: jasmine.SpyObj<IdentityService>;
-  let mockGovernedObjectService: jasmine.SpyObj<GovernedObjectService>;
+  let mockIdentityService: any;
+  let mockGovernedObjectService: any;
   let mockActivatedRoute: any;
 
   const mockGovernedObject = {
@@ -182,8 +182,11 @@ describe('ObjectOverviewComponent', () => {
     });
 
     it('should set description to empty string when governedObjectDescription is missing', (done) => {
-      const objectWithoutDescription = { ...mockGovernedObject };
-      delete objectWithoutDescription.governedObjectDescription;
+      const objectWithoutDescription: any = {
+        governedObjectUuid: mockGovernedObject.governedObjectUuid,
+        governedObjectName: mockGovernedObject.governedObjectName,
+        status: mockGovernedObject.status
+      };
 
       mockGovernedObjectService.getGovernedObjectByUuid.and.returnValue(
         of(objectWithoutDescription)
