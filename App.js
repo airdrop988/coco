@@ -2,9 +2,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { ObjectOverviewComponent } from './object-overview.component';
-import { IdentityService } from '../../services/identity.service';
-import { GovernedObjectService } from '../../services/governed-object.service';
-import { TaskDataService } from '../../services/task-data.service';
+import { IdentityService } from 'services';
+import { GovernedObjectService } from 'services';
+import { TaskDataService } from 'global-ui';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
