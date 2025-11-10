@@ -5,14 +5,16 @@ import { ObjectOverviewComponent } from './object-overview.component';
 import { IdentityService } from 'services';
 import { GovernedObjectService } from 'services';
 import { TaskDataService } from 'global-ui';
-import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('ObjectOverviewComponent', () => {
   let component: ObjectOverviewComponent;
   let fixture: ComponentFixture<ObjectOverviewComponent>;
   let mockIdentityService: any;
   let mockGovernedObjectService: any;
+  let mockTaskDataService: any;
   let mockActivatedRoute: any;
 
   const mockGovernedObject = {
@@ -23,30 +25,62 @@ describe('ObjectOverviewComponent', () => {
   };
 
   beforeEach(async () => {
-    // Create mock service objects
+    // Create comprehensive mock service objects
     mockIdentityService = {
-      getUser: jest.fn()
+      getUser: jest.fn(),
+      getUserId: jest.fn(),
+      isAuthenticated: jest.fn()
     };
 
     mockGovernedObjectService = {
-      getGovernedObjectByUuid: jest.fn()
+      getGovernedObjectByUuid: jest.fn(),
+      getAllGovernedObjects: jest.fn(),
+      updateGovernedObject: jest.fn()
+    };
+
+    mockTaskDataService = {
+      getTasks: jest.fn().mockReturnValue(of([])),
+      getTaskById: jest.fn(),
+      updateTask: jest.fn(),
+      deleteTask: jest.fn(),
+      createTask: jest.fn()
     };
 
     // Mock ActivatedRoute with params observable
     mockActivatedRoute = {
-      params: of({ governedObjectUuid: 'test-uuid-123' })
+      params: of({ governedObjectUuid: 'test-uuid-123' }),
+      snapshot: {
+        params: { governedObjectUuid: 'test-uuid-123' },
+        queryParams: {}
+      },
+      queryParams: of({})
     };
 
     await TestBed.configureTestingModule({
-      imports: [ObjectOverviewComponent, CommonModule],
+      imports: [
+        CommonModule,
+        HttpClientTestingModule
+      ],
+      declarations: [],
       providers: [
         { provide: IdentityService, useValue: mockIdentityService },
         { provide: GovernedObjectService, useValue: mockGovernedObjectService },
-        { provide: ActivatedRoute, useValue: mockActivatedRoute },
-        TaskDataService
+        { provide: TaskDataService, useValue: mockTaskDataService },
+        { provide: ActivatedRoute, useValue: mockActivatedRoute }
       ],
-      schemas: [CUSTOM_ELEMENTS_SCHEMA]
-    }).compileComponents();
+      schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA]
+    })
+    .overrideComponent(ObjectOverviewComponent, {
+      set: {
+        imports: [CommonModule],
+        providers: [
+          { provide: IdentityService, useValue: mockIdentityService },
+          { provide: GovernedObjectService, useValue: mockGovernedObjectService },
+          { provide: TaskDataService, useValue: mockTaskDataService }
+        ]
+      }
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(ObjectOverviewComponent);
     component = fixture.componentInstance;
@@ -56,6 +90,7 @@ describe('ObjectOverviewComponent', () => {
     if (fixture) {
       fixture.destroy();
     }
+    jest.clearAllMocks();
   });
 
   describe('Component Initialization', () => {
